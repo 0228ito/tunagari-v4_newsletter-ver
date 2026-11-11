@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
   TUNAGARI MVPプロトタイプ＋既存機能マージ版・シンプルホーム v4（2026/11/11。v3に「つながり通信」を追加）
-  ・つながり通信＝毎月の「縦をつなぐ会」の声を記事にした学内ニュースレター。ホームのカード／お知らせから開き、記事から質問・知恵・イベントへつなぐ。
+  ・つながり通信＝毎月の「縦をつなぐ会」の声を記事にした学内ニュースレター。ホーム上部の表紙カード／お知らせから開き、記事から質問・知恵・イベントへつなぐ。
   ・v3（2026/11/06。過去問→先輩の知恵、閲覧チケットは非表示）の内容はそのまま。
   ・v2（文字を減らした版）に、話題の色・数字・小さな動き・助かった！ランキングを足した版です。文字は増やしていません。
   ・261029_mvp に、既存サービスの イベント／プロモーション／ペタ／つながる をマージしたものです。
@@ -774,7 +774,7 @@
     function makeInitialNotices() {
       const now = Date.now();
       return [
-        { id: "n0", kind: "tsushin", issueId: "vol2", title: "VOL.2「1年生の最初の半年、何に困った？」", preview: "縦をつなぐ会で出た、1年生のつまずきと先輩の答えをまとめました", at: now - 10 * MIN, read: false },
+        { id: "n0", kind: "tsushin", issueId: "vol1", title: "VOL.1（創刊号）「1年生の最初の半年、何に困った？」", preview: "縦をつなぐ会で出た、1年生のつまずきと先輩の答えをまとめました", at: now - 10 * MIN, read: false },
         { id: "n1", postId: 9, kind: "answer", title: "レポートの参考文献の書き方、みんな何を…", preview: "先生によって形式の指定があるので、まずシラバスを確認するのが確実です。", at: now - 30 * MIN, read: false },
         { id: "n2", postId: 3, kind: "summary", title: "テスト前の勉強、みんなどうやって計画…", preview: "ペタが集まったので、AIが要点をまとめました", at: now - 5 * 60 * MIN, read: false },
         ...(TICKETS_ENABLED ? [{ id: "n3", kind: "ticket", title: "閲覧チケットをプレゼント", preview: `はじめての登録で${START_TICKETS}枚。先輩の知恵を1件見られます`, at: now - 26 * 60 * MIN, read: true }] : [])
@@ -3174,63 +3174,67 @@
     // ============================================================
     // 📰 つながり通信（v4で追加）
     //   ・毎月の「縦をつなぐ会」で出た悩みと先輩の答えを、名前を伏せて記事にした学内ニュースレター
-    //   ・ホームのカード／お知らせから開く。記事の中の話題から、アプリ内の質問・お題・投稿へつなぐ
-    //   ・「質問を送ってください」の送り先＝アプリの「質問する」。「先輩の答えを募集」＝関連する質問にペタ
-    //   ・本番は運営が管理画面で号を作る（ここでは見本の2号をデータで持っている）
+    //   ・ホーム上部の「表紙カード」／お知らせから開く。記事の中の話題から、アプリ内の質問・知恵・イベントへつなぐ
+    //   ・読みたくなる仕掛け：表紙（号数スタンプ・ひとこと予告）、目次、読んだ量のバー、「わかる！」「なるほど」、
+    //     引用の大見出し、先輩の答え待ちの吹き出し、読み終わりのスタンプと次号予告
+    //   ・「わかる！」「なるほど」の数は見本（本番は全員の合計）
+    //   ・本番は運営が管理画面で号を作る（ここでは小樽商大の座談会から作った創刊号を見本で持っている）
     // ============================================================
     const TSUSHIN_ISSUES = [
       {
-        id: "vol2", vol: 2, date: "2026.11", title: "1年生の最初の半年、何に困った？",
+        id: "vol1", vol: 1, month: "創刊号", date: "2026.11", title: "1年生の最初の半年、何に困った？",
         sub: `履修・${U.lms}・メールの書き方、ゼミ選び、ガクチカ、冬の通学`,
+        teaser: { who: "1年", text: "全部の授業を落とすんじゃないかと、怖かったんです。" },
         lead: "学年のちがう学生が初めて顔を合わせた座談会から、1年生がつまずいたことと、先輩だから知っていることをお届けします。",
+        nextTeaser: `次号は「${U.winter}」。歩いて通う先輩の本音を集めます。`,
         blocks: [
-          { t: "kicker", text: "特集" },
+          { t: "kicker", text: "特集", toc: "1年生の半年" },
           { t: "h2", text: "1年生の最初の半年、何に困った？" },
           { t: "p", text: "入学して半年。1年生に「探すのに苦労した情報」を付せんに書いてもらうと、ほとんどが「人に聞かないと手に入らない」ものでした。2年生の先輩と一緒に、ひとつずつ聞いてみました。" },
-          { t: "h3", text: "履修のしくみが分からない" },
+          { t: "h3", text: "履修のしくみが分からない", icon: "event_note" },
           { t: "chat", items: [
-            { who: "1年", text: "最初は、いつから授業が始まるのかも分かりませんでした。仮で受けてみて次の週から確定する、という仕組みが分からなくて。友達に聞いて「とりあえず授業に行けばいいのかな」と。" },
-            { who: "2年", text: "前期は履修相談会があるから、まだ聞きやすいんです。気をつけたいのは後期。夏休みが明けると急に履修が始まるので、後期の方が情報を得にくかったです。" }
+            { who: "1年", wakaru: 14, text: "最初は、いつから授業が始まるのかも分かりませんでした。仮で受けてみて次の週から確定する、という仕組みが分からなくて。友達に聞いて「とりあえず授業に行けばいいのかな」と。" },
+            { who: "2年", naruhodo: 9, text: "前期は履修相談会があるから、まだ聞きやすいんです。気をつけたいのは後期。夏休みが明けると急に履修が始まるので、後期の方が情報を得にくかったです。" }
           ] },
           { t: "related", q: "履修", label: "履修の質問を見る" },
-          { t: "h3", text: `${U.lms}の使い方、誰も教えてくれない` },
+          { t: "h3", text: `${U.lms}の使い方、誰も教えてくれない`, icon: "laptop_chromebook" },
           { t: "chat", items: [
-            { who: "1年", text: "説明があまりなかったので、使いながら「小テストはここにあるんだ」「新しいお知らせはここに印がつくんだ」と覚えました。初めのころは友達に「これどういうこと？」と聞いていました。" },
-            { who: "先生", text: "正直、教える側も説明しにくいシステムなんです。ゼロから説明しても伝わりにくいので、実際に触ってみるのが一番です。" }
+            { who: "1年", wakaru: 11, text: "説明があまりなかったので、使いながら「小テストはここにあるんだ」「新しいお知らせはここに印がつくんだ」と覚えました。初めのころは友達に「これどういうこと？」と聞いていました。" },
+            { who: "先生", naruhodo: 6, text: "正直、教える側も説明しにくいシステムなんです。ゼロから説明しても伝わりにくいので、実際に触ってみるのが一番です。" }
           ] },
-          { t: "h3", text: "メールやレポートの「作法」" },
+          { t: "h3", text: "メールやレポートの「作法」", icon: "mail" },
           { t: "chat", items: [
-            { who: "1年", text: "先生へのメールは、文章をAIに直してもらって「様」の付け方などを覚えました。参考文献の書き方は、基礎ゼミでレポートの書き方を習った友達が、本に書き方が載っているよと教えてくれました。" }
+            { who: "1年", wakaru: 8, text: "先生へのメールは、文章をAIに直してもらって「様」の付け方などを覚えました。参考文献の書き方は、基礎ゼミでレポートの書き方を習った友達が、本に書き方が載っているよと教えてくれました。" }
           ] },
           { t: "related", q: "レポート", label: "レポートの質問を見る" },
-          { t: "h3", text: "単位を落とすのが怖い" },
+          { t: "h3", text: "単位を落とすのが怖い", icon: "sentiment_worried" },
           { t: "chat", items: [
-            { who: "1年", text: "全部の授業を落とすんじゃないかと怖かったんです。奨学金もかかっているので、恐る恐る「楽に取れる授業」を探していました。時間が合うか、取っている友達がいるかも気になります。" },
-            { who: "2年", text: "私はサークルに入ってから、先輩が「この授業おすすめだよ」と教えてくれるようになりました。人とのつながりができると、授業の情報も入ってきます。" }
+            { who: "1年", wakaru: 21, text: "全部の授業を落とすんじゃないかと怖かったんです。奨学金もかかっているので、恐る恐る「楽に取れる授業」を探していました。時間が合うか、取っている友達がいるかも気になります。" },
+            { who: "2年", naruhodo: 12, text: "私はサークルに入ってから、先輩が「この授業おすすめだよ」と教えてくれるようになりました。人とのつながりができると、授業の情報も入ってきます。" }
           ] },
+          { t: "quote", text: "人とのつながりができると、授業の情報も入ってくる。", who: "2年生" },
           { t: "ask", text: "3・4年生のみなさん、「1年の前期、これを知っていれば楽だった」ということを教えてください。", label: "先輩の知恵を残す", kind: "share" },
-          { t: "kicker", text: "ゼミ選び" },
+          { t: "kicker", text: "ゼミ選び", toc: "ゼミ選び" },
           { t: "h2", text: "ゼミ選びを「ギャンブル」にしないために" },
           { t: "p", text: "見学をしていないゼミや、来年度から新しく開くゼミもあります。所属している先輩を知らなければ、雰囲気はまったく分かりません。" },
           { t: "chat", items: [
-            { who: "学生", text: "見学をやっていないゼミもあって、入っている先輩も知らないので、全く情報がないまま選ぶことになります。" },
-            { who: "先生", text: "案内は一覧がバーッと出るだけなので、興味のあるものをゼロから探すしかない。所属している先輩とつながりがないと、雰囲気は分からないですよね。" }
+            { who: "学生", wakaru: 10, text: "見学をやっていないゼミもあって、入っている先輩も知らないので、全く情報がないまま選ぶことになります。" },
+            { who: "先生", naruhodo: 7, text: "案内は一覧がバーッと出るだけなので、興味のあるものをゼロから探すしかない。所属している先輩とつながりがないと、雰囲気は分からないですよね。" }
           ] },
           { t: "related", q: "ゼミ", label: "ゼミの質問にペタする" },
-          { t: "kicker", text: "2年生の関心ごと" },
+          { t: "kicker", text: "2年生の関心ごと", toc: "ガクチカ" },
           { t: "h2", text: "ガクチカって、何を書くの？" },
           { t: "chat", items: [
-            { who: "2年", text: "同じ学年はまだ就活をしていないので、先輩に聞くしかありません。サークルの3年生に聞いたら、サークルを続けたことや、何かを一から作った経験もガクチカになるよ、と教えてくれました。サークル以外の人のことも知りたいです。" }
+            { who: "2年", wakaru: 7, text: "同じ学年はまだ就活をしていないので、先輩に聞くしかありません。サークルの3年生に聞いたら、サークルを続けたことや、何かを一から作った経験もガクチカになるよ、と教えてくれました。サークル以外の人のことも知りたいです。" }
           ] },
           { t: "related", q: "ガクチカ", label: "ガクチカの質問を見る" },
-          { t: "kicker", text: "vol.1のつづき" },
+          { t: "kicker", text: "暮らし", toc: "冬の通学" },
           { t: "h2", text: `${U.winter}、歩いて通える？` },
           { t: "chat", items: [
-            { who: "1年", text: "交通費を浮かせたいので、坂を歩いて通いたいんです。今は20分ちょっと。でも冬になったら歩けるのかな、と。同級生はまだ冬を経験していないので、誰も分からなくて。" },
-            { who: "先輩", wanted: true, text: "冬に歩いて通っている先輩の答えを募集中です。" }
+            { who: "1年", wakaru: 16, text: "交通費を浮かせたいので、坂を歩いて通いたいんです。今は20分ちょっと。でも冬になったら歩けるのかな、と。同級生はまだ冬を経験していないので、誰も分からなくて。" },
+            { who: "先輩", wanted: true, q: "通学", text: "この吹き出しに入る、先輩の答えを募集中です。" }
           ] },
-          { t: "related", q: "通学", label: "冬の通学の質問にペタする" },
-          { t: "kicker", text: "声を集めてわかったこと" },
+          { t: "kicker", text: "声を集めてわかったこと", toc: "まとめ" },
           { t: "h2", text: "信頼できるのは、身近な人と「助かった！」の数" },
           { t: "p", text: "SNSにも体験談はたくさんあります。それでも学生が信頼するのは、実際に経験した身近な人の話でした。もうひとつの目安が口コミの反応。「『助かった』が多い情報は信頼できそう」という声がありました。" },
           { t: "letters", items: [
@@ -3240,86 +3244,118 @@
           ] }
         ],
         next: { when: "12月予定", theme: `${U.winter}、どう乗り切る？` }
-      },
-      {
-        id: "vol1", vol: 1, date: "2026.11", title: "冬って、自力で学校に通えますか？",
-        sub: "創刊号。知りたいのは、公式には載らないこと",
-        lead: "先輩に聞きたいこと、聞けていますか？ 公式の案内には載っていないけれど、先輩なら知っていることを届けます。",
-        blocks: [
-          { t: "kicker", text: "特集" },
-          { t: "h2", text: "「冬って、自力で学校に通えますか？」" },
-          { t: "p", text: "ワークショップで、初対面の1年生と先輩がこの話題で盛り上がりました。1年生は身近に聞ける上級生がいなくて、ずっと気になっていたそうです。" },
-          { t: "chat", items: [
-            { who: "1年", text: "雪の日って、自力で登校できるんですか？ 実際に体験してみないと分からないけど、装備は先にそろえておきたくて。" },
-            { who: "先輩", wanted: true, text: "先輩の答え（通学手段、靴・服装、雪の日の過ごし方）を募集中です。" }
-          ] },
-          { t: "related", q: "通学", label: "冬の通学の質問にペタする" },
-          { t: "kicker", text: "声を集めてわかったこと" },
-          { t: "h2", text: "知りたいのは、公式には載らないこと" },
-          { t: "p", text: "学年が違っても、知りたいことはよく似ていました。情報が足りないのではなく、本音や実態と、今の自分に合う情報が手に入らないのです。" },
-          { t: "topics", items: [["授業・単位", "楽単はどれ？／この授業の雰囲気は？"], ["ゼミ・進路", "ゼミの雰囲気は？"], ["暮らし", "冬の通学はどうする？"], ["勉強法", "試験や課題はどう乗り切る？"]] }
-        ],
-        next: null
       }
     ];
+    // 表紙の色（号ごとに変えられる。濃い色の上に白文字、号数はレモン色）
+    const TSUSHIN_COVER = {
+      vol1: "radial-gradient(rgb(255 255 255 / .10) 1px, transparent 1px) 0 0 / 12px 12px, linear-gradient(140deg, rgb(18 92 78), rgb(24 116 112) 55%, rgb(38 84 140))"
+    };
+    const TS_LEMON = "rgb(255 221 102)";
     const TSUSHIN_WHO = {
       "1年": "bg-surface border border-line text-sub",
       "学生": "bg-surface border border-line text-sub",
       "2年": "bg-brand text-on-brand",
       "先輩": "bg-brand text-on-brand",
-      "先生": "bg-sunk text-ink border border-line"
+      "先生": "bg-ask text-surface"
     };
+    const tsushinVoices = (issue) => issue.blocks.filter(b => b.t === "chat").flatMap(b => b.items).filter(m => !m.wanted);
+    const tsushinMinutes = (issue) => Math.max(1, Math.round((issue.lead.length + issue.blocks.reduce((n, b) => n + (b.text || "").length + (b.items || []).reduce((m, x) => m + (Array.isArray(x) ? x.join("").length : (x.text || "").length), 0), 0)) / 450));
 
+    // 🏠 ホーム上部の表紙カード
     function TsushinHomeCard({ issue, unread, onOpen }) {
+      const voices = tsushinVoices(issue);
+      const whos = [...new Set(voices.map(v => v.who === "学生" ? "1年" : v.who === "先輩" ? "2年" : v.who))];
       return (
-        <button onClick={onOpen} className="w-full text-left bg-surface rounded-3xl border border-line/70 shadow-soft p-4 space-y-2 press" aria-label={`つながり通信 vol.${issue.vol}を読む`}>
-          <span className="flex items-center gap-1.5 text-[11.5px] font-black text-brand-deep">
+        <button onClick={onOpen} className="relative overflow-hidden w-full text-left text-white rounded-3xl p-4 shadow-lift space-y-3 press animate-fade-up"
+          style={{ background: TSUSHIN_COVER[issue.id] }} aria-label={`つながり通信 vol.${issue.vol}「${issue.title}」を読む`}>
+          <span aria-hidden="true" className="absolute -right-4 -top-5 font-head font-black text-[96px] leading-none opacity-[.12] tabular-nums select-none">{String(issue.vol).padStart(2, "0")}</span>
+          <span className="relative flex items-center gap-1.5 text-[11.5px] font-black">
             <Icon n="newspaper" fill size={16} />つながり通信
-            <span className="text-mute font-bold tabular-nums">VOL.{issue.vol}</span>
-            {unread && <span className="ml-auto bg-love text-white text-[10px] font-black rounded-full px-2 py-0.5">NEW</span>}
+            <span className="rounded-full px-2 py-0.5 text-[10.5px] tabular-nums" style={{ background: TS_LEMON, color: "rgb(40 44 44)" }}>VOL.{issue.vol}・{issue.month}</span>
+            {unread && <span className="ml-auto bg-love text-white text-[10px] font-black rounded-full px-2 py-0.5" style={{ animation: "softPulse 1.8s ease-out infinite" }}>NEW</span>}
           </span>
-          <p className="font-head font-black text-[15.5px] leading-snug">{issue.title}</p>
-          <p className="text-[12px] text-sub line-clamp-1">{issue.sub}</p>
-          <span className="flex items-center justify-between text-[12px] font-bold">
-            <span className="text-mute">縦をつなぐ会の声から</span>
-            <span className="text-brand-deep flex items-center">読む<Icon n="chevron_right" size={16} /></span>
+          <span className="relative block font-head font-black text-[19px] leading-snug">{issue.title}</span>
+          <span className="relative flex gap-2 items-start">
+            <span className="w-8 h-8 rounded-full bg-white/90 text-[10.5px] font-black flex items-center justify-center flex-shrink-0" style={{ color: "rgb(18 92 78)" }}>{issue.teaser.who}</span>
+            <span className="min-w-0 bg-white/15 backdrop-blur-sm rounded-2xl rounded-tl-md px-3 py-2 text-[13px] font-bold leading-snug">「{issue.teaser.text}」</span>
+          </span>
+          <span className="relative flex items-center gap-2">
+            <span className="flex -space-x-1.5">
+              {whos.slice(0, 3).map(w => <span key={w} className="w-6 h-6 rounded-full bg-white/90 ring-2 ring-white/30 text-[9px] font-black flex items-center justify-center" style={{ color: "rgb(18 92 78)" }}>{w}</span>)}
+            </span>
+            <span className="text-[11.5px] font-bold opacity-90">声 {voices.length}件・約{tsushinMinutes(issue)}分</span>
+            <span className="ml-auto text-[12.5px] font-black rounded-full pl-3 pr-1.5 py-1 flex items-center" style={{ background: TS_LEMON, color: "rgb(40 44 44)" }}>読む<Icon n="chevron_right" size={17} /></span>
           </span>
         </button>
       );
     }
 
+    // 📖 通信の画面（号の一覧／記事）
     function TsushinPage({ issueId, setIssueId, readIds, posts, onBack, onOpenPost, onWatch, onSearch, onAsk, onShare, onOpenEvents }) {
       useScrollLock();
       const issue = TSUSHIN_ISSUES.find(i => i.id === issueId) || null;
       const scroller = useRef(null);
-      React.useLayoutEffect(() => { if (scroller.current) scroller.current.scrollTop = 0; }, [issueId]);
+      const [pct, setPct] = useState(0);
+      const [reacted, setReacted] = useState({});   // 自分が押した「わかる！」「なるほど」
+      const [done, setDone] = useState(false);
+      React.useLayoutEffect(() => { if (scroller.current) scroller.current.scrollTop = 0; setPct(0); setDone(false); }, [issueId]);
+      const onScroll = () => {
+        const s = scroller.current; if (!s || !issue) return;
+        const p = Math.min(1, s.scrollTop / Math.max(1, s.scrollHeight - s.clientHeight));
+        setPct(p); if (p > 0.97) setDone(true);
+      };
+      const jump = (i) => { const el = document.getElementById(`ts-sec-${i}`); if (el && scroller.current) scroller.current.scrollTo({ top: el.offsetTop - 64, behavior: "smooth" }); };
       const relatedOf = (q) => posts.filter(p => !p.odai && matchPost(p, [q])).sort((a, b) => a.comments.length - b.comments.length).slice(0, 1);
-      const Block = ({ b }) => {
-        if (b.t === "kicker") return <p className="text-[11.5px] font-black tracking-[.12em] text-brand-deep pt-4">{b.text}</p>;
-        if (b.t === "h2") return <h3 className="font-head font-black text-[19px] leading-snug -mt-1">{b.text}</h3>;
-        if (b.t === "h3") return <h4 className="font-head font-black text-[15px] text-brand-deep pt-1">{b.text}</h4>;
-        if (b.t === "p") return <p className="text-[14px] leading-[1.9] text-ink/90">{b.text}</p>;
+      const myReactions = Object.values(reacted).filter(Boolean).length;
+      const renderBlock = (b, i) => {
+        if (b.t === "kicker") return <p key={i} id={`ts-sec-${i}`} className="text-[11.5px] font-black tracking-[.12em] text-brand-deep pt-5 flex items-center gap-1.5"><span className="w-5 h-[3px] rounded-full bg-brand"></span>{b.text}</p>;
+        if (b.t === "h2") return <h3 key={i} className="font-head font-black text-[20px] leading-snug -mt-1">{b.text}</h3>;
+        if (b.t === "h3") return <h4 key={i} className="font-head font-black text-[15px] pt-2 flex items-center gap-1.5"><span className="w-7 h-7 rounded-full bg-brand-tint text-brand-deep flex items-center justify-center"><Icon n={b.icon || "label"} fill size={16} /></span>{b.text}</h4>;
+        if (b.t === "p") return <p key={i} className="text-[14px] leading-[1.9] text-ink/90">{b.text}</p>;
         if (b.t === "chat") return (
-          <div className="space-y-2.5">
-            {b.items.map((m, i) => {
+          <div key={i} className="space-y-2.5">
+            {b.items.map((m, j) => {
               const right = m.who === "2年" || m.who === "先輩";
+              const key = `${issue.id}-${i}-${j}`;
+              const isWakaru = m.wakaru !== undefined;
+              const count = (isWakaru ? m.wakaru : m.naruhodo || 0) + (reacted[key] ? 1 : 0);
               return (
-                <div key={i} className={cx("flex gap-2 items-start", right && "flex-row-reverse")}>
+                <div key={j} className={cx("flex gap-2 items-start animate-fade-up", right && "flex-row-reverse")}>
                   <span className={cx("w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-black", TSUSHIN_WHO[m.who])}>{m.who}</span>
                   {m.wanted ? (
-                    <p className="min-w-0 flex-1 rounded-2xl border border-dashed border-brand/60 bg-brand-tint/50 px-3.5 py-2.5 text-[13px] leading-relaxed text-brand-deep font-bold flex gap-1.5"><Icon n="edit_note" size={18} className="flex-shrink-0" />{m.text}</p>
+                    <div className="min-w-0 flex-1 rounded-2xl rounded-tr-md border-2 border-dashed border-brand/60 bg-brand-tint/50 px-3.5 py-3 space-y-2">
+                      <p className="flex items-center gap-1 text-[12.5px] font-black text-brand-deep"><span className="flex gap-0.5" aria-hidden="true">{[0, 1, 2].map(d => <span key={d} className="w-1.5 h-1.5 rounded-full bg-brand" style={{ animation: `dotBounce 1.2s ${d * .15}s infinite` }}></span>)}</span>先輩の答え待ち</p>
+                      <p className="text-[13px] leading-relaxed text-ink/90">{m.text}</p>
+                      <button onClick={() => onSearch(m.q)} className="w-full bg-brand text-on-brand rounded-full py-2 text-[12.5px] font-black flex items-center justify-center gap-1 press"><Icon n="sticky_note_2" fill size={16} />ペタで答える</button>
+                    </div>
                   ) : (
-                    <p className={cx("min-w-0 flex-1 px-3.5 py-2.5 text-[13.5px] leading-[1.8]", right ? "bg-brand-tint rounded-2xl rounded-tr-md" : "bg-surface border border-line/70 rounded-2xl rounded-tl-md")}>{m.text}</p>
+                    <div className={cx("min-w-0 flex-1 flex flex-col gap-1", right ? "items-end" : "items-start")}>
+                      <p className={cx("px-3.5 py-2.5 text-[13.5px] leading-[1.8]", right ? "bg-brand-tint rounded-2xl rounded-tr-md" : "bg-surface border border-line/70 rounded-2xl rounded-tl-md")}>{m.text}</p>
+                      <button onClick={() => setReacted(r => ({ ...r, [key]: !r[key] }))} aria-pressed={!!reacted[key]}
+                        className={cx("text-[11.5px] font-black rounded-full px-2.5 py-1 flex items-center gap-1 press border", reacted[key] ? "bg-brand text-on-brand border-brand" : "bg-surface text-sub border-line")}>
+                        <Icon n={isWakaru ? "favorite" : "lightbulb"} fill={!!reacted[key]} size={14} className={reacted[key] ? "" : isWakaru ? "text-love" : "text-brand-deep"} />
+                        {isWakaru ? "わかる！" : "なるほど"}<span className="tabular-nums">{count}</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               );
             })}
           </div>
         );
+        if (b.t === "quote") return (
+          <figure key={i} className="py-3 text-center space-y-2">
+            <Icon n="format_quote" fill size={30} className="text-brand" />
+            <blockquote className="font-head font-black text-[19px] leading-[1.6] px-2">
+              <span style={{ background: `linear-gradient(transparent 60%, ${TS_LEMON} 60%)` }} className="box-decoration-clone px-0.5 text-[rgb(34_37_37)]">{b.text}</span>
+            </blockquote>
+            <figcaption className="text-[12px] font-bold text-mute">— {b.who}</figcaption>
+          </figure>
+        );
         if (b.t === "related") {
           const rel = relatedOf(b.q);
           return (
-            <div className="bg-sunk rounded-2xl p-2.5 space-y-2">
+            <div key={i} className="bg-sunk rounded-2xl p-2.5 space-y-2">
               <p className="text-[11.5px] font-black text-sub flex items-center gap-1 px-1"><Icon n="forum" size={15} />アプリの中の関連する質問</p>
               {rel.map(p => <QuestionRow key={p.id} post={p} onOpen={() => onOpenPost(p.id)} onWatch={onWatch} />)}
               <button onClick={() => onSearch(b.q)} className="w-full text-[12.5px] font-black text-brand-deep flex items-center justify-center gap-0.5 py-1.5 press">{b.label}<Icon n="chevron_right" size={16} /></button>
@@ -3327,13 +3363,13 @@
           );
         }
         if (b.t === "ask") return (
-          <div className="rounded-2xl border border-dashed border-brand/60 bg-brand-tint/40 p-3.5 space-y-2.5">
+          <div key={i} className="rounded-2xl border-2 border-dashed border-brand/60 bg-brand-tint/40 p-3.5 space-y-2.5">
             <p className="text-[13px] leading-relaxed font-bold">{b.text}</p>
             <button onClick={b.kind === "share" ? onShare : onAsk} className={cx(BTN_PRIMARY, "w-full py-2.5 text-[13.5px] flex items-center justify-center gap-1")}><Icon n={b.kind === "share" ? "lightbulb" : "edit"} size={18} />{b.label}</button>
           </div>
         );
         if (b.t === "topics") return (
-          <div className="grid grid-cols-2 gap-2">
+          <div key={i} className="grid grid-cols-2 gap-2">
             {b.items.map(([h, t]) => (
               <div key={h} className="bg-surface border border-line/70 rounded-2xl p-3 space-y-1 min-w-0">
                 <p className="text-[13px] font-black text-brand-deep">{h}</p>
@@ -3343,10 +3379,10 @@
           </div>
         );
         if (b.t === "letters") return (
-          <div className="space-y-3 pt-2">
+          <div key={i} className="space-y-2.5 pt-2">
             {b.items.map(([h, t]) => (
-              <div key={h} className="border-l-[3px] border-brand pl-3 space-y-1">
-                <p className="font-head font-black text-[14.5px]">{h}</p>
+              <div key={h} className="bg-surface rounded-2xl border border-line/70 p-3.5 space-y-1">
+                <p className="font-head font-black text-[14.5px] flex items-center gap-1"><Icon n="mail" fill size={16} className="text-brand-deep" />{h}</p>
                 <p className="text-[13.5px] leading-[1.85] text-ink/90">{t}</p>
               </div>
             ))}
@@ -3357,11 +3393,13 @@
       return (
         <div className="fixed inset-0 z-[25] bg-bg flex flex-col animate-push-in" role="region" aria-label="つながり通信">
           <div className="w-full max-w-md mx-auto flex-1 flex flex-col min-h-0">
-            <header className="px-2 pb-2 flex items-center gap-1 border-b border-line/70 bg-bg" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
+            <header className="relative px-2 pb-2 flex items-center gap-1 border-b border-line/70 bg-bg" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
               <button onClick={issue ? () => setIssueId(null) : onBack} aria-label={issue ? "号の一覧に戻る" : "ホームに戻る"} className="w-11 h-11 rounded-full flex items-center justify-center press"><Icon n="arrow_back_ios_new" size={22} /></button>
               <h2 className="font-head font-black text-[17px] flex-1">{issue ? `つながり通信 VOL.${issue.vol}` : "つながり通信"}</h2>
+              {issue && <span className="text-[11.5px] font-bold text-mute pr-3 tabular-nums">約{tsushinMinutes(issue)}分</span>}
+              {issue && <span aria-hidden="true" className="absolute left-0 bottom-0 h-[3px] bg-brand transition-[width] duration-150" style={{ width: `${pct * 100}%` }}></span>}
             </header>
-            <div ref={scroller} className="flex-1 overflow-y-auto px-4 pt-3" style={{ paddingBottom: "7rem" }}>
+            <div ref={scroller} onScroll={onScroll} className="flex-1 overflow-y-auto px-4 pt-3" style={{ paddingBottom: "7rem" }}>
               {!issue ? (
                 <div className="space-y-4">
                   <div className="space-y-2 px-1">
@@ -3369,13 +3407,15 @@
                     <p className="text-[13px] text-sub leading-relaxed">1年生から4年生までを“縦”につなぐ学内ニュースレターです。毎月の「縦をつなぐ会」で出た悩みと先輩の答えを、名前を伏せてお届けします。</p>
                   </div>
                   {TSUSHIN_ISSUES.map((i, n) => (
-                    <button key={i.id} onClick={() => setIssueId(i.id)} className={cx("w-full text-left rounded-3xl p-4 space-y-1.5 press border shadow-soft", n === 0 ? "bg-brand-tint/60 border-brand/40" : "bg-surface border-line/70")}>
-                      <span className="flex items-center gap-1.5 text-[11.5px] font-black text-brand-deep tabular-nums">VOL.{i.vol}<span className="text-mute font-bold">{i.date}</span>
-                        {n === 0 && <span className="bg-brand text-on-brand rounded-full px-2 py-0.5 text-[10.5px]">最新号</span>}
-                        {!readIds.includes(i.id) && <span className="ml-auto w-2.5 h-2.5 rounded-full bg-brand" aria-label="未読"></span>}
+                    <button key={i.id} onClick={() => setIssueId(i.id)} className="relative overflow-hidden w-full text-left text-white rounded-3xl p-4 space-y-1.5 press shadow-soft" style={{ background: TSUSHIN_COVER[i.id] }}>
+                      <span aria-hidden="true" className="absolute -right-3 -top-4 font-head font-black text-[80px] leading-none opacity-[.12] tabular-nums">{String(i.vol).padStart(2, "0")}</span>
+                      <span className="relative flex items-center gap-1.5 text-[11.5px] font-black tabular-nums">
+                        <span className="rounded-full px-2 py-0.5 text-[10.5px]" style={{ background: TS_LEMON, color: "rgb(40 44 44)" }}>VOL.{i.vol}</span>{i.month}
+                        {n === 0 && <span className="bg-white/20 rounded-full px-2 py-0.5 text-[10.5px]">最新号</span>}
+                        {readIds.includes(i.id) ? <span className="ml-auto text-[10.5px] opacity-85 flex items-center gap-0.5"><Icon n="check_circle" fill size={13} />読んだ</span> : <span className="ml-auto w-2.5 h-2.5 rounded-full" style={{ background: TS_LEMON }} aria-label="未読"></span>}
                       </span>
-                      <p className="font-head font-black text-[15.5px] leading-snug">{i.title}</p>
-                      <p className="text-[12px] text-sub">{i.sub}</p>
+                      <p className="relative font-head font-black text-[16.5px] leading-snug">{i.title}</p>
+                      <p className="relative text-[12px] opacity-90">{i.sub}</p>
                     </button>
                   ))}
                   <button onClick={onAsk} className="w-full text-left bg-surface rounded-3xl border border-line/70 p-4 flex items-center gap-3 press">
@@ -3386,14 +3426,34 @@
                 </div>
               ) : (
                 <article className="space-y-3.5 animate-fade-in">
-                  <div className="space-y-2 pb-1">
-                    <p className="text-[11.5px] font-black text-mute tabular-nums">VOL.{issue.vol} ／ {issue.date}</p>
-                    <p className="text-[14px] leading-[1.9]">{issue.lead}</p>
+                  {/* 表紙 */}
+                  <div className="relative overflow-hidden -mx-1 rounded-3xl p-5 text-white space-y-3 shadow-lift" style={{ background: TSUSHIN_COVER[issue.id] }}>
+                    <span aria-hidden="true" className="absolute -right-3 -bottom-6 font-head font-black text-[120px] leading-none opacity-[.12] tabular-nums">{String(issue.vol).padStart(2, "0")}</span>
+                    <div className="relative flex items-center gap-2">
+                      <span className="font-head font-black text-[13px] flex items-center gap-1"><Icon n="newspaper" fill size={17} />つながり通信</span>
+                      <span className="ml-auto rounded-xl px-2.5 py-1 font-head font-black text-[15px] tabular-nums" style={{ background: TS_LEMON, color: "rgb(40 44 44)", animation: "stampIn .6s cubic-bezier(.22,1,.36,1) both", transform: "rotate(-6deg)" }}>VOL.{issue.vol}</span>
+                    </div>
+                    <p className="relative text-[11.5px] font-bold opacity-85 tabular-nums">{issue.month}・{issue.date}</p>
+                    <h3 className="relative font-head font-black text-[23px] leading-snug">{issue.title}</h3>
+                    <p className="relative text-[13px] leading-[1.85] opacity-95">{issue.lead}</p>
+                    <div className="relative flex flex-wrap gap-1.5 pt-1" aria-label="目次">
+                      {issue.blocks.map((b, i) => b.t === "kicker" ? (
+                        <button key={i} onClick={() => jump(i)} className="text-[11.5px] font-black bg-white/15 hover:bg-white/25 rounded-full px-2.5 py-1 press">{b.toc || b.text}</button>
+                      ) : null)}
+                    </div>
                   </div>
-                  {issue.blocks.map((b, i) => <Block key={i} b={b} />)}
-                  <div className="pt-4 space-y-3">
+                  {issue.blocks.map(renderBlock)}
+                  {/* 読み終わり */}
+                  <div className="pt-5 space-y-3">
+                    <div className="relative overflow-hidden rounded-3xl p-5 text-center space-y-2 border border-line/70 bg-surface shadow-soft">
+                      <span className={cx("inline-flex items-center justify-center w-16 h-16 rounded-full font-head font-black text-[12px] leading-tight", done ? "" : "opacity-40")}
+                        style={{ background: TS_LEMON, color: "rgb(40 44 44)", animation: done ? "stampIn .6s cubic-bezier(.22,1,.36,1) both" : "none", transform: "rotate(-10deg)" }}>読んだ！</span>
+                      <p className="font-head font-black text-[16px]">{done ? "最後まで読んでくれてありがとう" : "最後まで読むとスタンプ"}</p>
+                      {myReactions > 0 && <p className="text-[12.5px] text-sub">あなたが押した「わかる！」「なるほど」<b className="text-ink tabular-nums">{myReactions}</b>件</p>}
+                      <p className="text-[12.5px] font-bold text-brand-deep flex items-center justify-center gap-1"><Icon n="auto_awesome" fill size={15} />{issue.nextTeaser}</p>
+                    </div>
                     <div className="bg-surface border border-line/70 rounded-3xl p-4 space-y-2.5 shadow-soft">
-                      <p className="font-head font-black text-[15px] flex items-center gap-1"><Icon n="edit" size={18} className="text-brand-deep" />質問を送ってください</p>
+                      <p className="font-head font-black text-[15px] flex items-center gap-1"><Icon n="edit" size={18} className="text-brand-deep" />あなたの悩みも、次の号に</p>
                       <p className="text-[13px] text-sub leading-relaxed">一人の悩みの裏には、同じことで悩んでいる人が100人います。匿名で質問すると先輩がペタで答えてくれます。よく届いた質問は次の号で紹介します。</p>
                       <button onClick={onAsk} className={cx(BTN_PRIMARY, "w-full py-2.5 text-[13.5px]")}>先輩に質問する</button>
                     </div>
@@ -3405,7 +3465,13 @@
                         <span className="text-[12.5px] font-black text-brand-deep flex items-center">仲間・イベントで見る<Icon n="chevron_right" size={16} /></span>
                       </button>
                     )}
-                    <p className="text-[11.5px] text-mute leading-relaxed px-1">この通信は、縦をつなぐ会に参加した学生・先生の声をもとに運営が編集しています。お名前は伏せ、学年だけを表示しています。</p>
+                    {TSUSHIN_ISSUES.filter(x => x.id !== issue.id).slice(0, 1).map(x => (
+                      <button key={x.id} onClick={() => setIssueId(x.id)} className="w-full text-left rounded-3xl p-4 text-white space-y-1 press" style={{ background: TSUSHIN_COVER[x.id] }}>
+                        <span className="text-[11.5px] font-black opacity-90">{x.vol > issue.vol ? "次の号" : "前の号"}・VOL.{x.vol}</span>
+                        <p className="font-head font-black text-[15px] leading-snug">{x.title}</p>
+                      </button>
+                    ))}
+                    <p className="text-[11.5px] text-mute leading-relaxed px-1">この通信は、縦をつなぐ会に参加した学生・先生の声をもとに運営が編集しています。お名前は伏せ、学年だけを表示しています。「わかる！」「なるほど」の数は見本です。</p>
                   </div>
                 </article>
               )}
@@ -3460,7 +3526,7 @@
       const [rankOpen, setRankOpen] = useState(false);
       const [tsushinOpen, setTsushinOpen] = useState(false);     // v4：つながり通信（別画面）
       const [tsushinIssue, setTsushinIssue] = useState(null);    // null＝号の一覧
-      const [tsushinRead, setTsushinRead] = useState(["vol1"]);  // 本番は利用者ごとに保存          // v3：助かった！ランキング（別画面）   // これまでのお題（別画面）
+      const [tsushinRead, setTsushinRead] = useState([]);  // 本番は利用者ごとに保存          // v3：助かった！ランキング（別画面）   // これまでのお題（別画面）
       const [eventId, setEventId] = useState(null);
       const [promoId, setPromoId] = useState(null);
       const [eventCreate, setEventCreate] = useState(false);
@@ -3784,6 +3850,8 @@
                       {petaWeek > 0 && <span className="relative text-[11.5px] font-black bg-white/20 rounded-full px-2 py-0.5">今週 +{petaWeek}</span>}
                       <span className="relative ml-auto text-[12px] font-black bg-white text-brand-deep rounded-full pl-2.5 pr-1.5 py-1 flex items-center"><Icon n="trophy" fill size={15} className="mr-0.5" />ランキング<Icon n="chevron_right" size={16} /></span>
                     </button>
+                    {/* v4：つながり通信の表紙カード（ホーム上部） */}
+                    <TsushinHomeCard issue={TSUSHIN_ISSUES[0]} unread={!tsushinRead.includes(TSUSHIN_ISSUES[0].id)} onOpen={() => openTsushin(TSUSHIN_ISSUES[0].id)} />
                   </div>
                 )}
                 <div className="space-y-2.5">
@@ -3874,9 +3942,6 @@
                       ))}
                       {homeFeed.length === 0 && <EmptyState text="まだ質問がありません" action="最初の質問をする" onAction={() => setAsk({})} />}
                     </section>
-
-                    {/* v4：つながり通信（最新号のカード） */}
-                    <TsushinHomeCard issue={TSUSHIN_ISSUES[0]} unread={!tsushinRead.includes(TSUSHIN_ISSUES[0].id)} onOpen={() => openTsushin(TSUSHIN_ISSUES[0].id)} />
 
                     {/* ④ 仲間・イベント・大学からは、1行の入口だけ */}
                     <button onClick={() => setEventsOpen(true)} className="w-full text-left bg-surface rounded-3xl border border-line/70 shadow-soft p-4 flex items-center gap-3 press">
