@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <!--
   TUNAGARI MVPプロトタイプ＋既存機能マージ版・シンプルホーム v4（2026/11/11。v3に「つながり通信」を追加）
+  ・11/11 追記：下部ナビを「ホーム／知恵／投稿／イベント／マイページ」に変更。お知らせはヘッダー右（ベル）へ移動。ホームは質問・回答・つながり通信だけに
+  ・11/11 追記：仲間・イベントに「イベント掲載代行」（サークル・ゼミ・研究室などのイベントページを運営がつくる受け口）を追加
   ・つながり通信＝毎月の「縦をつなぐ会」の声を記事にした学内ニュースレター。ホーム上部の表紙カード／お知らせから開き、記事から質問・知恵・イベントへつなぐ。
   ・v3（2026/11/06。過去問→先輩の知恵、閲覧チケットは非表示）の内容はそのまま。
   ・v2（文字を減らした版）に、話題の色・数字・小さな動き・助かった！ランキングを足した版です。文字は増やしていません。
@@ -262,6 +264,10 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
     }
+    /* v4：つながり通信の引用マーカー */
+    :root { --ts-mark: 255 221 102; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ts-mark: 110 88 14; } }
+    :root[data-theme="dark"] { --ts-mark: 110 88 14; }
   </style>
 </head>
 <body class="bg-bg text-ink min-h-screen overflow-x-hidden">
@@ -1425,7 +1431,7 @@
 
     const StepNum = ({ n }) => <span className="w-[18px] h-[18px] rounded-full bg-brand text-on-brand text-[11px] font-black inline-flex items-center justify-center">{n}</span>;
 
-    function AskSheet({ me, posts, courseDict = [], preset, context = "home", onClose, onSubmit, onJoin, onOpenPost, onCreateEvent, onShareKakomon }) {
+    function AskSheet({ me, posts, courseDict = [], preset, context = "home", onClose, onSubmit, onJoin, onOpenPost, onCreateEvent, onShareKakomon, onDaiko }) {
       const [mode, setMode] = useState(preset && (preset.cat || preset.text || preset.direct) ? "question" : "menu");
       const [text, setText] = useState((preset && preset.text) || "");
       const [catManual, setCatManual] = useState((preset && preset.cat && preset.cat !== "運営のお題") ? preset.cat : "");
@@ -1482,7 +1488,8 @@
         const g = (top) => row("g", "人を集める", "diversity_3", { icon: "diversity_3", label: "仲間を募集・イベントを作る", sub: "勉強仲間・イベント", onClick: onCreateEvent }, top);
         const w = (top) => row("w", "知恵を残す", "lightbulb", { icon: "lightbulb", label: "知恵を残す", sub: "授業のコツ・対策メモ", onClick: onShareKakomon }, top);
         // 開いた画面に合う項目を一番上に（ホーム＝質問／知恵タブ＝知恵を残す／仲間・イベント＝募集・イベント）
-        const order = context === "kakomon" ? [w(true), q(false), g(false)] : context === "gather" ? [g(true), q(false), w(false)] : [q(true), g(false), w(false)];
+        const d = (top) => row("d", "団体のイベントを告知する", "auto_awesome", { icon: "auto_awesome", label: "イベントページの作成を頼む（無料）", sub: "サークル・ゼミ・研究室向け。運営がつくります", onClick: onDaiko }, top);
+        const order = (context === "kakomon" ? [w(true), q(false), g(false)] : context === "gather" ? [g(true), q(false), w(false)] : [q(true), g(false), w(false)]).concat(onDaiko ? [d(false)] : []);
         return (
           <Sheet onClose={onClose}>
             <SheetHeader title="投稿する" icon="add_circle" onClose={onClose} />
@@ -2205,7 +2212,7 @@
             <div className="space-y-4">
               <section className="space-y-2">
                 <h3 className="text-[13px] font-black text-sub px-1">アプリ内の主催・参加したい</h3>
-                {myEv.length === 0 && <p className="text-[12.5px] text-mute px-1">まだありません。「仲間・イベント」から探せます</p>}
+                {myEv.length === 0 && <p className="text-[12.5px] text-mute px-1">まだありません。下の「イベント」から探せます</p>}
                 {myEv.map(e => (
                   <div key={e.id} className="space-y-1">
                     <p className="text-[11px] font-black px-1 text-brand-deep">{e.mine ? "主催" : "参加したい"}</p>
@@ -2294,6 +2301,21 @@
         "マイページ：自分だけが見られる記録。質問・回答（ペタり場のペタも回答として入る）・気になる・イベント（アプリ内の主催・参加したい、大学のイベントへの参加状況＝運営が手で更新）",
         "イベントの主催者：日時ありは主催団体名を毎回入力（必須）。いつでもの募集は「匿名・学年」か団体名",
         "言葉：聞く側は「質問」のまま、答える側は「ペタ」に統一（回答→ペタ、回答する→ペタる、回答N件→ペタN枚、AIの回答まとめ→AIのペタまとめ）。初めてペタるときだけ「『ペタ』は回答のこと」と案内。付せんの色帯はやめ、ペタのカードは白地＋枠線で読みやすく"
+      ] },
+      { title: "下部ナビの見直し（11/11）", items: [
+        "下部ナビ：ホーム（質問・回答・つながり通信）／知恵（知恵の一覧）／投稿（質問する・イベント・仲間募集・知恵を残す。既存のまま）／イベント（イベント・仲間募集の一覧）／マイページ",
+        "お知らせは下部ナビからヘッダー右のベルへ移動。未読の数をベルに表示",
+        "「仲間・イベント」はホームから開く別画面をやめ、下部ナビの「イベント」タブに。ホーム下部の「仲間・イベント」の入口は削除"
+      ] },
+      { title: "イベント掲載代行（11/11）", items: [
+        "仲間・イベントの「大学から」の下と、投稿メニューの一番下に「イベントページの作成を頼む（無料）」を追加。サークル・ゼミ・研究室・学生団体から情報をもらい、運営がAIでページをつくって載せる",
+        "流れ：情報を送る → 運営がページをつくる（3日以内）→ 主催者が下書きを確認して「公開OK」→ 掲載（「運営が作成」表示）。日時・場所・定員は入力どおりで、AIは文章と見た目だけを整える",
+        "参加者の情報を運営が持たない：申し込みフォームは主催者のGoogleアカウントで作る（運営のひな形をコピー）。運営はフォームの編集者・閲覧者に入らない。権限の譲渡ではなく、最初から主催者のものにする",
+        "依頼は在学確認済みのアカウントからだけ。連絡はアプリ内のお知らせで行い、メール・電話番号は聞かない",
+        "掲載基準：勧誘・営業・宗教・マルチ商法、お酒を強いるものはNG。学内施設の利用申請は主催者が行う。写真・ロゴは本人・持ち主の許可が前提。非公認の団体も掲載できるが活動内容を運営が確認する",
+        "受付は開催の7日前まで。新歓期（3〜4月）は件数が集中するので先着。大学の部署・教員からの依頼は、これまでどおり「大学からのお知らせ・募集」（PR表記）に載せる",
+        "協賛のマッチング（任意）：協賛を探したい団体に地元企業を紹介。協賛金は運営経由で渡し、一部を手数料としていただく想定。協賛企業は「協賛」と表示し、学生向けにふさわしくない業種は紹介しない",
+        "未決：運営の作業量（1件あたりの時間と、新歓期の上限件数）、非公認団体の確認方法、各大学の学内イベントでの企業宣伝・配布物のルール"
       ] },
       { title: "デモの動き", items: [
         "データは保存されません。再読み込みで初期状態に戻ります。",
@@ -2453,6 +2475,9 @@
       const now = Date.now();
       return [
         // 日時が決まっている集まり（旧イベント）
+        // v4：縦をつなぐ会（運営主催。つながり通信の取材の場。日時・教室は見本）
+        { id: "tate1", scheduled: true, tsushin: true, title: `縦をつなぐ会｜${U.winter}、どう乗り切る？`, type: ["オフライン"], tags: ["おひとり様歓迎", "情報交換", "まったり交流"], host: "TUNAGARI運営事務局", start: at(28, 18), end: at(28, 19, 30), place: "学内（教室は決まりしだいお知らせします）", capacity: 8, interested: 3, mine: false, myInterest: false, grades: [1, 2, 3, 4], tone: 0, createdAt: now - 1 * day, joiners: [],
+          desc: `学年を越えて、聞きたいことをその場で先輩に聞ける少人数の会です。12月のテーマは「${U.winter}、どう乗り切る？」。\n\n・困っていることを付せんに書き出して、先輩の経験を聞きます（90分）\n・初めての人、一人での参加も歓迎です。1・2年生も、答えてくれる3・4年生も募集しています\n・話した内容は、参加者の同意を得て録音し、名前を伏せて「つながり通信」に載せます。載せる前に内容を確認できます` },
         { id: "e1", scheduled: true, title: "【オンライン】もくもく勉強会（期末テスト前）", type: ["オンライン"], tags: ["勉強会", "おひとり様歓迎", "途中参加・途中退場OK"], host: "学習支援サークル", start: at(3, 20), end: at(3, 22), place: "Zoom（URLは参加したい人に共有）", capacity: 0, interested: 12, mine: false, myInterest: false, grades: [1, 2, 3, 4, 5], tone: 0, createdAt: now - 2 * day, joiners: [],
           desc: "カメラオフでOK。最初の5分だけ今日やることを宣言して、あとは黙々と。テスト前の追い込みを一緒に。" },
         { id: "e2", scheduled: true, title: "新入生も歓迎！冬のスポーツ交流会", type: ["オフライン"], tags: ["スポーツ", "ワイワイ交流", "部員・メンバー募集"], host: "フットサルサークル", start: at(6, 13), end: at(6, 16), place: "学内の体育館", capacity: 30, interested: 18, mine: false, myInterest: false, grades: [1, 2], tone: 1, createdAt: now - 3 * day, joiners: [],
@@ -2556,6 +2581,8 @@
             <div className="flex gap-1 flex-wrap">
               {ev.scheduled ? (ev.type || []).map(t => <span key={t} className="text-[10.5px] font-bold text-brand-deep bg-brand-tint px-1.5 py-[1px] rounded-full">{t}</span>)
                 : <span className="text-[10.5px] font-bold text-sub bg-sunk px-1.5 py-[1px] rounded-full">日時は相談して決める</span>}
+              {ev.tsushin && <span className="text-[10.5px] font-black px-1.5 py-[1px] rounded-full flex items-center gap-0.5" style={{ background: "rgb(255 221 102)", color: "rgb(40 44 44)" }}><Icon n="newspaper" fill size={12} />つながり通信</span>}
+              {ev.daiko && <span className="text-[10.5px] font-black text-brand-deep border border-brand px-1.5 py-[1px] rounded-full flex items-center gap-0.5"><Icon n="auto_awesome" fill size={12} />運営が作成</span>}
               {ev.mine && <span className="text-[10.5px] font-black text-on-brand bg-brand px-1.5 py-[1px] rounded-full">あなたが主催</span>}
               {ev.closed && <span className="text-[10.5px] font-black text-sub border border-line px-1.5 py-[1px] rounded-full">締め切り</span>}
             </div>
@@ -2583,6 +2610,16 @@
               <p className="flex gap-2"><Icon n="flag_circle" size={18} className="text-brand-deep" />主催：{ev.mine ? `あなた（${hostName(ev)}）` : hostName(ev)}</p>
             </div>
             {ev.desc && <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{ev.desc}</p>}
+            {ev.daiko && (
+              <div className="bg-sunk rounded-3xl p-3.5 space-y-2">
+                {ev.formUrl ? (<>
+                  <p className="text-[13px] font-black flex items-center gap-1"><Icon n="assignment" size={16} className="text-brand-deep" />申し込みは主催者のフォームから</p>
+                  {/^https?:\/\//.test(ev.formUrl) ? <a href={ev.formUrl} target="_blank" rel="noopener noreferrer" className={cx(BTN_SOFT, "w-full bg-surface flex items-center justify-center gap-1")}>申し込みフォームを開く<Icon n="open_in_new" size={16} /></a>
+                    : <p className="text-[12.5px] text-sub">{ev.formUrl}</p>}
+                </>) : null}
+                <p className="text-[11.5px] text-mute leading-relaxed">このページは主催者の依頼で運営が作成し、主催者が内容を確認して公開しました。{ev.formUrl ? "フォームの回答は主催者だけが見られ、TUNAGARI運営は受け取りません。" : ""}</p>
+              </div>
+            )}
             {(ev.joiners || []).length > 0 && (
               <div className="space-y-1.5">
                 <p className="text-[13px] font-black flex items-center gap-1"><Icon n="waving_hand" size={16} className="text-brand-deep" />参加したい人のひとこと</p>
@@ -2614,8 +2651,8 @@
       );
     }
 
-    function EventsPage({ events, promos, me, onBack, onOpenEvent, onOpenPromo, onCreate }) {
-      useScrollLock();
+    // 📅 イベントタブ（下部ナビ「イベント」。旧：ホームから開く別画面「仲間・イベント」）
+    function EventsTab({ events, promos, me, onOpenEvent, onOpenPromo, onDaiko }) {
       const [kind, setKind] = useState("all");   // all | scheduled | anytime
       const [tag, setTag] = useState("");
       const [q, setQ] = useState("");
@@ -2627,13 +2664,11 @@
       const filtered = tag || q;
       const clear = () => { setTag(""); setQ(""); };
       return (
-        <div className="fixed inset-0 z-[25] bg-bg flex flex-col animate-push-in" role="region" aria-label="仲間・イベント">
-          <div className="w-full max-w-md mx-auto flex-1 flex flex-col min-h-0 relative">
-            <header className="px-2 pb-2 flex items-center gap-1 border-b border-line/70 bg-bg" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
-              <button onClick={onBack} aria-label="ホームに戻る" className="w-11 h-11 rounded-full flex items-center justify-center press"><Icon n="arrow_back_ios_new" size={22} /></button>
-              <h2 className="font-head font-black text-[17px] flex-1">仲間・イベント</h2>
-            </header>
-            <div className="flex-1 overflow-y-auto px-4 pt-3 space-y-4" style={{ paddingBottom: "7rem" }}>
+        <div className="space-y-4 pt-2 animate-fade-in" role="region" aria-label="イベント">
+              <div className="px-1 space-y-0.5">
+                <h1 className="font-head font-black text-[22px]">イベント</h1>
+                <p className="text-[12px] text-sub">イベント・仲間募集の一覧です</p>
+              </div>
               {pinned.length > 0 && <MyPinned label="投稿しました。あなたの募集・イベント">{pinned.map(e => <EventCard key={e.id} ev={e} wide onOpen={() => onOpenEvent(e.id)} />)}</MyPinned>}
               <section className="space-y-2.5">
                 <SectionHead title="大学からのお知らせ・募集" icon="account_balance" />
@@ -2641,6 +2676,7 @@
                   {promos.map(p => <PromoCard key={p.id} promo={p} onOpen={() => onOpenPromo(p.id)} />)}
                 </ScrollRow>
               </section>
+              {onDaiko && <DaikoBanner onOpen={onDaiko} />}
               <Segmented value={kind} onChange={setKind} options={[{ value: "all", label: "すべて" }, { value: "scheduled", label: "日時あり", icon: "event" }, { value: "anytime", label: "いつでも", icon: "diversity_3" }]} />
               <div className="relative">
                 <Icon n="search" size={20} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-mute" />
@@ -2665,8 +2701,6 @@
                   {anytime.length === 0 && <p className="text-[13px] text-mute text-center py-4">該当する募集はありません</p>}
                 </section>
               )}
-            </div>
-          </div>
         </div>
       );
     }
@@ -2714,6 +2748,251 @@
             </div>
           </div>
         </div>
+      );
+    }
+
+    // ============================================================
+    // 📝 イベント掲載代行（11/11 追加）
+    //   ・サークル・ゼミ・研究室・学生団体から情報をもらい、運営がAIでイベントページをつくって「仲間・イベント」に載せる（無料）
+    //   ・依頼は在学確認済みのアカウントから。連絡はアプリ内のお知らせだけ（メール・電話番号は聞かない）
+    //   ・申し込みフォームは主催者のGoogleアカウントで作る（運営のひな形をコピー）。回答は主催者だけが見られ、運営は編集者にも入らない
+    //   ・AIが整えるのは文章と見た目だけ。日時・場所・定員は入力どおり。公開前に主催者が下書きを確認して「公開OK」を出す
+    //   ・掲載基準：勧誘・営業・宗教・マルチ商法、お酒を強いるものはNG。学内施設の利用申請は主催者が行う
+    //   ・受付は開催の7日前まで（作成に最大3日＋確認・修正）。新歓期（3〜4月）は件数が集中するので先着
+    //   ・大学の部署・教員からの依頼は、これまでどおり「大学からのお知らせ・募集」（PR表記）の枠に載せる
+    //   ・協賛を探したい団体は、地元企業とのマッチングを希望できる（決まったら協賛金は運営経由で渡し、一部を手数料としていただく想定）
+    // ============================================================
+    const DAIKO_ORG_TYPES = ["サークル・部活", "ゼミ・研究室", "学生団体", "学園祭・実行委員会", "大学の部署・教員"];
+    const DAIKO_THANKS = ["ページにロゴを載せる", "SNSで紹介する", "当日チラシ・クーポンを配る"];
+    const DAIKO_LEAD_DAYS = 7;
+    const DAIKO_RULES = [
+      "勧誘・営業・宗教・マルチ商法が目的のイベントではありません",
+      "お酒を強いる内容や、未成年の飲酒につながる内容はありません",
+      "学内の教室・施設を使う場合は、大学への利用申請を主催者が行います",
+      "写真・ロゴは、写っている人や持ち主の許可をとっています"
+    ];
+    // 本番はAIが文章を整える。デモは入力から下書きを組み立てるだけ（日時・場所・定員は入力どおり）
+    function daikoDraft(r) {
+      const tags = r.orgType === "ゼミ・研究室" ? ["情報交換", "まったり交流"] : r.orgType === "サークル・部活" ? ["部員・メンバー募集", "おひとり様歓迎"] : ["情報交換", "おひとり様歓迎"];
+      const lines = [r.desc, "", `・主催：${r.org}（${r.orgType}）`, r.target ? `・対象：${r.target}` : "",
+        r.apply === "form" ? "・参加の申し込みは、下の申し込みフォームから（回答は主催者だけが見られます）" : "・「参加したい」を押すと主催者に伝わります"].filter(x => x !== "");
+      return { scheduled: true, daiko: true, title: r.title, desc: lines.join("\n"), tags, host: r.org, hostLabel: "", place: r.place, type: r.type,
+        start: new Date(`${r.date}T${r.from}`).getTime(), end: new Date(`${r.date}T${r.to}`).getTime(), capacity: Number(r.cap) || 0, formUrl: r.apply === "form" ? r.formUrl : "" };
+    }
+    function DaikoBanner({ onOpen }) {
+      return (
+        <button onClick={onOpen} className="w-full text-left rounded-3xl border-[1.5px] border-dashed border-brand bg-brand-tint p-4 flex items-center gap-3 press">
+          <span className="w-11 h-11 rounded-2xl bg-brand text-on-brand flex items-center justify-center flex-shrink-0"><Icon n="auto_awesome" fill size={22} /></span>
+          <span className="flex-1 min-w-0">
+            <span className="block font-black text-[14px]">イベントページ、運営がつくります（無料）</span>
+            <span className="block text-[11.5px] text-sub leading-snug">サークル・ゼミ・研究室の新歓や発表会など。情報を送るだけで、見やすいページにして載せます</span>
+          </span>
+          <Icon n="chevron_right" className="text-brand-deep" />
+        </button>
+      );
+    }
+    function DaikoSheet({ onClose, onSubmit, onPublish }) {
+      const pad = (n) => String(n).padStart(2, "0");
+      const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const [step, setStep] = useState("intro");   // intro | form | done
+      const [orgType, setOrgType] = useState(DAIKO_ORG_TYPES[0]);
+      const [org, setOrg] = useState("");
+      const [official, setOfficial] = useState("公認");
+      const [title, setTitle] = useState("");
+      const [desc, setDesc] = useState("");
+      const [date, setDate] = useState(ymd(new Date(Date.now() + 14 * 24 * 60 * MIN)));
+      const [from, setFrom] = useState("18:00");
+      const [to, setTo] = useState("19:30");
+      const [place, setPlace] = useState("");
+      const [type, setType] = useState(["オフライン"]);
+      const [cap, setCap] = useState("");
+      const [target, setTarget] = useState("");
+      const [apply, setApply] = useState("interest");   // interest | form
+      const [copied, setCopied] = useState(false);
+      const [formUrl, setFormUrl] = useState("");
+      const [photo, setPhoto] = useState("");
+      const [sponsor, setSponsor] = useState(false);
+      const [spAmt, setSpAmt] = useState("");
+      const [spThanks, setSpThanks] = useState([]);
+      const [checks, setChecks] = useState([]);
+      const [req, setReq] = useState(null);
+      const toggle = (arr, set, v) => set(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
+      const minDate = ymd(new Date(Date.now() + DAIKO_LEAD_DAYS * 24 * 60 * MIN));
+      const tooSoon = date < minDate;
+      const isUniv = orgType === "大学の部署・教員";
+      const allChecked = DAIKO_RULES.every(r => checks.includes(r)) && checks.includes("confirm");
+      const ok = org.trim() && title.trim() && desc.trim() && place.trim() && type.length && !tooSoon && from < to && allChecked;
+      const submit = () => {
+        const r = { id: `dk${Date.now()}`, orgType, org: org.trim(), official, title: title.trim(), desc: desc.trim(), date, from, to, place: place.trim(), type, cap, target: target.trim(), apply, formUrl: formUrl.trim(), photo, sponsor, spAmt, spThanks, at: Date.now() };
+        setReq(r); onSubmit(r); setStep("done");
+      };
+      const Num = ({ n, done }) => <span className={cx("w-6 h-6 rounded-full text-[12px] font-black inline-flex items-center justify-center flex-shrink-0", done ? "bg-brand text-on-brand" : "bg-sunk text-sub")}>{done ? <Icon n="check" size={15} /> : n}</span>;
+      const FLOW = [
+        ["情報を送る", "団体名・イベント名・日時・場所・内容（この画面で入力）"],
+        ["運営がページをつくる", "AIで文章と見た目を整えます。日時・場所・定員は入力どおり（3日以内）"],
+        ["下書きを確認して「公開OK」", "お知らせに下書きが届きます。直したいところは返信で伝えられます"],
+        ["「仲間・イベント」に掲載", "「運営が作成」と表示。申し込みは「参加したい」か、主催者のフォームで受け付けます"]
+      ];
+      // 部品にすると入力のたびに作り直されるため、関数で描く
+      const check = (id, children) => (
+        <label key={id} className="flex items-start gap-3 cursor-pointer select-none">
+          <input type="checkbox" checked={checks.includes(id)} onChange={() => toggle(checks, setChecks, id)} className="mt-1 w-4 h-4 accent-[rgb(var(--brand))]" />
+          <span className="text-[13px] leading-relaxed">{children}</span>
+        </label>
+      );
+
+      if (step === "intro") return (
+        <Sheet onClose={onClose} z={56}>
+          <SheetHeader title="イベントページの作成を頼む" icon="auto_awesome" onClose={onClose} />
+          <div className="px-5 pb-4 pt-1 overflow-y-auto space-y-4 flex-1">
+            <div className="rounded-3xl bg-brand-tint p-4 space-y-1.5">
+              <span className="inline-block text-[11px] font-black bg-brand text-on-brand px-2 py-0.5 rounded-full">無料</span>
+              <h2 className="font-head font-black text-[18px] leading-snug">サークル・ゼミ・研究室のイベントを、<br />運営が見やすいページにして載せます</h2>
+              <p className="text-[12.5px] text-sub leading-relaxed">新歓、勉強会、研究発表会、学園祭の企画など。学年を越えて、{U.short}の学生に届けます。</p>
+            </div>
+            <section className="space-y-2.5">
+              <p className="text-[13px] font-black">流れ</p>
+              {FLOW.map(([t, d], i) => (
+                <div key={t} className="flex gap-3"><Num n={i + 1} /><span className="min-w-0"><span className="block text-[13.5px] font-bold">{t}</span><span className="block text-[12px] text-sub leading-snug">{d}</span></span></div>
+              ))}
+            </section>
+            <section className="bg-sunk rounded-3xl p-4 space-y-2 text-[12.5px] leading-relaxed">
+              <p className="text-[13px] font-black flex items-center gap-1"><Icon n="shield" size={17} className="text-brand-deep" />大事にしていること</p>
+              <p>・<b>参加者の情報は運営が持ちません。</b>申し込みフォームはあなたのGoogleアカウントで作ってもらい、回答はあなただけが見られます</p>
+              <p>・<b>公開前に必ずあなたが確認します。</b>AIが整えるのは文章と見た目だけで、日時・場所は入力どおりです</p>
+              <p>・連絡はアプリのお知らせだけ。メールアドレスや電話番号は聞きません</p>
+              <p>・受付は開催の{DAIKO_LEAD_DAYS}日前まで。新歓期（3〜4月）は先着順です</p>
+            </section>
+            <section className="space-y-1.5">
+              <p className="text-[13px] font-black">掲載できないもの</p>
+              <p className="text-[12.5px] text-sub leading-relaxed">勧誘・営業・宗教・マルチ商法が目的のもの、お酒を強いるもの。内容によっては掲載をお断りすることがあります。</p>
+            </section>
+          </div>
+          <div className="px-4 pt-3 pb-4 border-t border-line">
+            <button onClick={() => setStep("form")} className={cx(BTN_PRIMARY, "w-full")}>依頼する</button>
+          </div>
+        </Sheet>
+      );
+
+      if (step === "done" && req) return (
+        <Sheet onClose={onClose} z={56}>
+          <SheetHeader title="依頼を受け付けました" icon="check_circle" onClose={onClose} />
+          <div className="px-5 pb-4 pt-1 overflow-y-auto space-y-4 flex-1">
+            <section className="space-y-2.5">
+              {FLOW.map(([t, d], i) => (
+                <div key={t} className="flex gap-3"><Num n={i + 1} done={i === 0} /><span className="min-w-0"><span className={cx("block text-[13.5px] font-bold", i === 1 && "text-brand-deep")}>{t}{i === 1 && "（いまここ）"}</span><span className="block text-[12px] text-sub leading-snug">{d}</span></span></div>
+              ))}
+            </section>
+            <section className="space-y-2">
+              <p className="text-[13px] font-black">できあがりイメージ（下書きの例）</p>
+              <EventCard ev={{ ...daikoDraft(req), id: "preview", interested: 0, tone: 2 }} wide onOpen={() => {}} />
+              <p className="text-[12.5px] leading-relaxed whitespace-pre-wrap bg-sunk rounded-2xl p-3">{daikoDraft(req).desc}</p>
+            </section>
+            {req.sponsor && <p className="text-[12.5px] leading-relaxed bg-sunk rounded-2xl p-3"><b>協賛のマッチング：</b>協賛してくれそうな地元企業が見つかったら、お知らせで相談します。協賛が決まらなくても掲載は無料です。</p>}
+            {isUniv && <p className="text-[12.5px] leading-relaxed bg-sunk rounded-2xl p-3">大学の部署・教員からの依頼なので、「大学からのお知らせ・募集」（PR表記つき）の枠に載せます。</p>}
+          </div>
+          <div className="px-4 pt-3 pb-4 border-t border-line space-y-2">
+            <button onClick={() => onPublish(daikoDraft(req))} className={cx(BTN_PRIMARY, "w-full")}>下書きを確認して公開する（デモ）</button>
+            <button onClick={onClose} className={cx(BTN_SOFT, "w-full")}>閉じる（下書きはお知らせに届きます）</button>
+          </div>
+        </Sheet>
+      );
+
+      return (
+        <Sheet onClose={onClose} z={56}>
+          <SheetHeader title="イベントページの作成を頼む" icon="auto_awesome" onBack={() => setStep("intro")} onClose={onClose} />
+          <div className="px-5 pb-4 pt-1 overflow-y-auto space-y-5 flex-1">
+            {/* 1. 団体 */}
+            <section className="space-y-2.5">
+              <p className="text-[13px] font-black">1. 主催する団体</p>
+              <div className="flex flex-wrap gap-1.5">{DAIKO_ORG_TYPES.map(t => <button key={t} onClick={() => setOrgType(t)} aria-pressed={orgType === t} className={CHIP(orgType === t)}>{t}</button>)}</div>
+              <input value={org} onChange={(e) => setOrg(e.target.value)} placeholder="団体名（例：〇〇サークル、〇〇研究室）" aria-label="団体名" className={INPUT} />
+              {!isUniv && (
+                <div className="space-y-1">
+                  <span className={LABEL}>大学の公認団体ですか？</span>
+                  <div className="grid grid-cols-3 gap-1.5">{["公認", "非公認", "わからない"].map(v => <button key={v} onClick={() => setOfficial(v)} aria-pressed={official === v} className={cx("py-2 rounded-2xl text-[12.5px] font-bold border-[1.5px] press", official === v ? "bg-brand-tint text-brand-deep border-brand" : "bg-surface text-sub border-line")}>{v}</button>)}</div>
+                  <p className="text-[11.5px] text-mute">非公認でも掲載できます。団体の活動内容を運営が確認します</p>
+                </div>
+              )}
+              {isUniv && <p className="text-[11.5px] text-sub bg-sunk rounded-2xl p-3 leading-relaxed">大学の部署・教員からの依頼は、「大学からのお知らせ・募集」（PR表記つき）の枠に載せます。</p>}
+            </section>
+
+            {/* 2. イベント */}
+            <section className="space-y-2.5">
+              <p className="text-[13px] font-black">2. イベントの情報</p>
+              <div><label className={LABEL} htmlFor="dk-title">イベント名（{title.length}/35）</label><input id="dk-title" maxLength={35} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例：新歓BBQ／卒業研究発表会" className={INPUT} /></div>
+              <div><label className={LABEL} htmlFor="dk-desc">内容（箇条書きでOK。AIが読みやすく整えます）</label><textarea id="dk-desc" rows={4} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={"例：\n・新入生歓迎のBBQ。部員20人くらい\n・食材はこちらで用意、参加費500円\n・雨天時は部室で鍋"} className={cx(INPUT, "resize-none")} /></div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-3"><label className={LABEL} htmlFor="dk-date">開催日</label><input id="dk-date" type="date" min={minDate} value={date} onChange={(e) => setDate(e.target.value)} className={INPUT} /></div>
+                <div><label className={LABEL} htmlFor="dk-from">開始</label><input id="dk-from" type="time" value={from} onChange={(e) => setFrom(e.target.value)} className={INPUT} /></div>
+                <div><label className={LABEL} htmlFor="dk-to">終了</label><input id="dk-to" type="time" value={to} onChange={(e) => setTo(e.target.value)} className={INPUT} /></div>
+                <div><label className={LABEL} htmlFor="dk-cap">定員（人）</label><input id="dk-cap" inputMode="numeric" value={cap} onChange={(e) => setCap(e.target.value.replace(/\D/g, ""))} placeholder="なし" className={INPUT} /></div>
+              </div>
+              {tooSoon && <p className="text-[12px] font-bold text-danger-ink">受付は開催の{DAIKO_LEAD_DAYS}日前までです。{minDate.replace(/-/g, "/")}以降の日付にしてください</p>}
+              {from >= to && <p className="text-[12px] font-bold text-danger-ink">終了の時刻を、開始より後にしてください</p>}
+              <div className="flex gap-2">{["オフライン", "オンライン"].map(t => <button key={t} onClick={() => toggle(type, setType, t)} aria-pressed={type.includes(t)} className={CHIP(type.includes(t))}><Icon n={type.includes(t) ? "check_box" : "check_box_outline_blank"} size={16} />{t}</button>)}</div>
+              <div><label className={LABEL} htmlFor="dk-place">開催場所</label><input id="dk-place" value={place} onChange={(e) => setPlace(e.target.value)} placeholder="例：〇〇棟 201教室／Zoom（URLは参加者だけに共有）" className={INPUT} /></div>
+              <div><label className={LABEL} htmlFor="dk-target">対象（任意）</label><input id="dk-target" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="例：1・2年生、学部・学年は問いません" className={INPUT} /></div>
+              <div>
+                <span className={LABEL}>写真・ロゴ（任意）</span>
+                <label className="flex items-center gap-2 bg-sunk rounded-2xl px-4 py-3 text-[13px] font-bold text-sub cursor-pointer press">
+                  <Icon n="add_photo_alternate" size={20} className="text-brand-deep" />{photo || "画像を選ぶ"}
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setPhoto(e.target.files && e.target.files[0] ? e.target.files[0].name : "")} />
+                </label>
+              </div>
+            </section>
+
+            {/* 3. 申し込み方法 */}
+            <section className="space-y-2.5">
+              <p className="text-[13px] font-black">3. 参加の受け付け方</p>
+              {[["interest", "「参加したい」だけでOK", "押した人のひとことが、あなたに届きます"], ["form", "申し込みフォームを使う", "名前や学年などを集めたいとき。フォームはあなたのものです"]].map(([v, t, d]) => (
+                <button key={v} onClick={() => setApply(v)} aria-pressed={apply === v} className={cx("w-full text-left rounded-2xl px-3.5 py-3 flex items-start gap-3 border-[1.5px] press", apply === v ? "bg-brand-tint border-brand" : "bg-surface border-line")}>
+                  <Icon n={apply === v ? "radio_button_checked" : "radio_button_unchecked"} size={20} className="text-brand-deep mt-0.5" />
+                  <span className="min-w-0"><span className="block text-[13.5px] font-bold">{t}</span><span className="block text-[11.5px] text-sub">{d}</span></span>
+                </button>
+              ))}
+              {apply === "form" && (
+                <div className="bg-sunk rounded-3xl p-3.5 space-y-2.5 animate-fade-in">
+                  <p className="text-[12.5px] leading-relaxed"><b>参加者の情報を運営が持たないために</b>、フォームはあなたのGoogleアカウントで作ってもらいます。</p>
+                  <ol className="text-[12.5px] leading-relaxed list-decimal pl-5 space-y-0.5">
+                    <li>下のボタンで、運営が用意したひな形をあなたのアカウントにコピー</li>
+                    <li>名前・学年・連絡先など、聞きたい項目を調整</li>
+                    <li>フォームのURLを下に貼る（下書きの確認のときでもOK）</li>
+                  </ol>
+                  <button onClick={() => setCopied(true)} className={cx(BTN_SOFT, "w-full bg-surface flex items-center justify-center gap-1")}><Icon n={copied ? "check" : "content_copy"} size={18} />{copied ? "コピーしました（デモ）" : "ひな形を自分のアカウントにコピーする"}</button>
+                  <input value={formUrl} onChange={(e) => setFormUrl(e.target.value)} placeholder="https://forms.gle/…（あとからでもOK）" aria-label="申し込みフォームのURL" className={cx(INPUT, "bg-surface")} />
+                  <p className="text-[11.5px] text-mute leading-relaxed">回答はあなただけが見られます。運営はフォームの編集者・閲覧者に入りません。</p>
+                </div>
+              )}
+            </section>
+
+            {/* 4. 協賛 */}
+            <section className="space-y-2.5">
+              <div className="flex items-center gap-3">
+                <span className="flex-1 min-w-0"><span className="block text-[13px] font-black">4. 協賛してくれる企業を探したい（任意）</span><span className="block text-[11.5px] text-sub">地元のお店・企業とつなぎます</span></span>
+                <Toggle on={sponsor} onChange={setSponsor} label="協賛を探したい" />
+              </div>
+              {sponsor && (
+                <div className="bg-sunk rounded-3xl p-3.5 space-y-2.5 animate-fade-in">
+                  <div><label className={LABEL} htmlFor="dk-sp">ほしい金額・物（めやす）</label><input id="dk-sp" value={spAmt} onChange={(e) => setSpAmt(e.target.value)} placeholder="例：3万円／飲み物40人分" className={cx(INPUT, "bg-surface")} /></div>
+                  <div><span className={LABEL}>お礼にできること</span><div className="flex flex-wrap gap-1.5">{DAIKO_THANKS.map(t => <button key={t} onClick={() => toggle(spThanks, setSpThanks, t)} aria-pressed={spThanks.includes(t)} className={CHIP(spThanks.includes(t))}>{t}</button>)}</div></div>
+                  <p className="text-[11.5px] text-mute leading-relaxed">決まったら協賛金は運営を通してお渡しし、その一部を手数料としていただきます。協賛企業はページに「協賛」と表示します。学生向けにふさわしくない業種（消費者金融など）はご紹介しません。</p>
+                </div>
+              )}
+            </section>
+
+            {/* 5. 確認 */}
+            <section className="bg-sunk rounded-3xl p-4 space-y-2.5">
+              <p className="text-[13px] font-black">5. 確認</p>
+              {DAIKO_RULES.map(r => check(r, r))}
+              {check("confirm", "公開前に下書きを確認し、内容に責任をもちます")}
+            </section>
+            <p className="text-[11.5px] text-mute leading-relaxed">依頼は在学確認済みのこのアカウントから送られます。運営からの連絡はアプリのお知らせに届きます。</p>
+          </div>
+          <div className="px-4 pt-3 pb-4 border-t border-line">
+            <button disabled={!ok} onClick={submit} className={cx(BTN_PRIMARY, "w-full")}>依頼を送る</button>
+          </div>
+        </Sheet>
       );
     }
 
@@ -3347,7 +3626,7 @@
           <figure key={i} className="py-3 text-center space-y-2">
             <Icon n="format_quote" fill size={30} className="text-brand" />
             <blockquote className="font-head font-black text-[19px] leading-[1.6] px-2">
-              <span style={{ background: `linear-gradient(transparent 60%, ${TS_LEMON} 60%)` }} className="box-decoration-clone px-0.5 text-[rgb(34_37_37)]">{b.text}</span>
+              <span style={{ background: "linear-gradient(transparent 60%, rgb(var(--ts-mark)) 60%)" }} className="box-decoration-clone px-0.5 text-ink">{b.text}</span>
             </blockquote>
             <figcaption className="text-[12px] font-bold text-mute">— {b.who}</figcaption>
           </figure>
@@ -3462,7 +3741,7 @@
                         <p className="font-head font-black text-[15px] flex items-center gap-1"><Icon n="diversity_3" fill size={18} className="text-brand-deep" />次回「縦をつなぐ会」</p>
                         <p className="text-[13px] text-sub leading-relaxed">学年を越えて、聞きたいことをその場で聞ける少人数の会です。初めての人も、一人での参加も歓迎です。</p>
                         <p className="text-[12.5px] font-bold">{issue.next.when}・テーマ「{issue.next.theme}」</p>
-                        <span className="text-[12.5px] font-black text-brand-deep flex items-center">仲間・イベントで見る<Icon n="chevron_right" size={16} /></span>
+                        <span className="text-[12.5px] font-black text-brand-deep flex items-center">イベントを見る・参加したい<Icon n="chevron_right" size={16} /></span>
                       </button>
                     )}
                     {TSUSHIN_ISSUES.filter(x => x.id !== issue.id).slice(0, 1).map(x => (
@@ -3521,7 +3800,6 @@
       // マージした既存機能
       const [events, setEvents] = useState(() => EMPTY_DEMO ? [] : makeInitialEvents());
       const [promos] = useState(() => makePromos());
-      const [eventsOpen, setEventsOpen] = useState(false);
       const [odaiListOpen, setOdaiListOpen] = useState(false);
       const [rankOpen, setRankOpen] = useState(false);
       const [tsushinOpen, setTsushinOpen] = useState(false);     // v4：つながり通信（別画面）
@@ -3530,6 +3808,7 @@
       const [eventId, setEventId] = useState(null);
       const [promoId, setPromoId] = useState(null);
       const [eventCreate, setEventCreate] = useState(false);
+      const [daikoOpen, setDaikoOpen] = useState(false);   // イベント掲載代行（11/11）
       const [univRecords] = useState(makeUnivRecords);
       const [userCard, setUserCard] = useState(null);
       const [petaDone, setPetaDone] = useState(false);   // 「ペタ」の案内は、初めてペタるまで出す（本番は利用者ごとに保存）   // 回答者のカード   // 大学のイベントへの参加状況（運営が手で更新）
@@ -3560,8 +3839,8 @@
       const updatePost = (id, fn) => setPosts(prev => prev.map(p => p.id === id ? fn(p) : p));
       // ホームへ：重なっている画面（仲間・イベント／お題一覧）があれば閉じるだけ＝元の位置に戻る。
       //   検索中なら解除してホームへ戻る（元の位置）。別タブからならホームの元の位置へ。ホームでもう一度押したら先頭へ
-      const overlayOpen = eventsOpen || odaiListOpen || rankOpen || tsushinOpen;
-      const closeOverlays = () => { setEventsOpen(false); setOdaiListOpen(false); setRankOpen(false); setTsushinOpen(false); };
+      const overlayOpen = odaiListOpen || rankOpen || tsushinOpen;
+      const closeOverlays = () => { setOdaiListOpen(false); setRankOpen(false); setTsushinOpen(false); };
       // v4：つながり通信を開く（号を指定すると記事から、なければ一覧から）
       const openTsushin = (id = null) => { setTsushinIssue(id); setTsushinOpen(true); if (id) setTsushinRead(prev => prev.includes(id) ? prev : [...prev, id]); };
       const goHome = () => {
@@ -3641,13 +3920,19 @@
         const id = `e${Date.now()}`;
         setEvents(prev => [{ id, ...v, interested: 0, mine: true, myInterest: false, grades: [1, 2, 3, 4, 5], tone: prev.length, createdAt: Date.now(), joiners: [] }, ...prev]);
         setEventCreate(false);
-        scrollMem.current.events = 0; setTab("home"); setEventsOpen(true);
+        closeOverlays(); scrollMem.current.events = 0; setTab("events"); window.scrollTo(0, 0);
         showToast(v.scheduled ? "イベントを公開しました" : "仲間を募集しました");
         later(() => {
           setEvents(prev => prev.map(e => e.id === id ? { ...e, interested: e.interested + 1, joiners: [...(e.joiners || []), { id: `d${Date.now()}`, who: "匿名・1年", note: "参加したいです！" }] } : e));
           pushNotice({ kind: "event", title: v.title, preview: "あなたのイベントに「参加したい」が届きました（相手への連絡は主催者から）" });
         }, DEMO_REPLY_MS);
       };
+      // イベント掲載代行：依頼を受けたら、デモでは数秒後に「下書きができました」のお知らせが届く
+      const submitDaiko = (r) => {
+        showToast("依頼を送りました。下書きができたらお知らせします");
+        later(() => pushNotice({ kind: "event", title: r.title, preview: "イベントページの下書きができました。内容を確認して「公開OK」を押してください（デモ）" }), DEMO_REPLY_MS);
+      };
+      const publishDaiko = (v) => { setDaikoOpen(false); createEvent(v); };
       // つながったら、お互いの一覧に追加。相手側にもお知らせが届く（本番）／自分が読み取られた側ならお知らせを受け取る
       const onConnected = (p, how) => {
         setConnections(prev => prev.some(x => x.id === p.id) ? prev : [{ ...p, at: Date.now(), how }, ...prev]);
@@ -3831,7 +4116,12 @@
                 <span className="block text-[11.5px] text-sub truncate flex items-center gap-0.5"><Icon n="verified" fill size={13} className="text-brand-deep" />{U.short}生限定のQ&A</span>
               </span>
             </button>
-            {/* シンプル版：ヘッダーはメニューだけ（チケットは過去問タブ、QRはマイページへ） */}
+            {/* ヘッダー右：お知らせ（下部ナビから移動）＋メニュー */}
+            <button onClick={() => goTab("notices")} aria-label={unreadCount > 0 ? `お知らせ（未読${unreadCount}件）` : "お知らせ"} aria-current={tab === "notices" ? "page" : undefined}
+              className={cx("relative w-9 h-9 rounded-full border flex items-center justify-center press", tab === "notices" ? "bg-brand-tint border-brand/50 text-brand-deep" : "bg-surface border-line")}>
+              <Icon n="notifications" fill={tab === "notices"} size={20} />
+              {unreadCount > 0 && <span className="absolute -top-1 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-love text-white text-[10px] font-black flex items-center justify-center ring-2 ring-bg">{unreadCount}</span>}
+            </button>
             <button onClick={() => setMenuOpen(true)} aria-label="設定" className="w-9 h-9 rounded-full bg-surface border border-line flex items-center justify-center press"><Icon n="menu" size={20} /></button>
           </header>
 
@@ -3943,15 +4233,6 @@
                       {homeFeed.length === 0 && <EmptyState text="まだ質問がありません" action="最初の質問をする" onAction={() => setAsk({})} />}
                     </section>
 
-                    {/* ④ 仲間・イベント・大学からは、1行の入口だけ */}
-                    <button onClick={() => setEventsOpen(true)} className="w-full text-left bg-surface rounded-3xl border border-line/70 shadow-soft p-4 flex items-center gap-3 press">
-                      <span className="w-11 h-11 rounded-2xl bg-brand-tint text-brand-deep flex items-center justify-center flex-shrink-0"><Icon n="diversity_3" fill size={24} /></span>
-                      <span className="flex-1 min-w-0">
-                        <span className="block font-head font-black text-[15px]">仲間・イベント</span>
-                        <span className="block text-[12px] text-sub truncate">募集中 {openGathers.length}件・大学から {promos.length}件</span>
-                      </span>
-                      <Icon n="chevron_right" className="text-mute" />
-                    </button>
                   </>
                 )}
               </div>
@@ -3960,6 +4241,11 @@
             {tab === "kakomon" && (
               <KakomonTab items={kakomon} tickets={tickets} courseFilter={kakomonCourse} setCourseFilter={setKakomonCourse}
                 onOpen={(k) => setKakomonId(k.id)} onEarn={goEarn} />
+            )}
+
+            {tab === "events" && (
+              <EventsTab events={events} promos={promos} me={me}
+                onOpenEvent={setEventId} onOpenPromo={setPromoId} onDaiko={() => setDaikoOpen(true)} />
             )}
 
             {tab === "notices" && (
@@ -3979,7 +4265,7 @@
               { tab: "home", icon: "home", label: "ホーム" },
               { tab: "kakomon", icon: "lightbulb", label: "知恵" },
               { center: true },
-              { tab: "notices", icon: "notifications", label: "お知らせ" },
+              { tab: "events", icon: "event", label: "イベント" },
               { tab: "me", icon: "person", label: "マイページ" }
             ].map(item => item.center ? (
               <div key="center" className="w-[72px] flex-shrink-0 self-stretch relative">
@@ -3990,11 +4276,10 @@
                 </button>
               </div>
             ) : (
-              <button key={item.tab} onClick={() => { if (item.tab === "home") goHome(); else goTab(item.tab); }} aria-label={item.tab === "notices" && unreadCount > 0 ? `お知らせ（未読${unreadCount}件）` : item.label} aria-current={tab === item.tab ? "page" : undefined}
+              <button key={item.tab} onClick={() => { if (item.tab === "home") goHome(); else goTab(item.tab); }} aria-label={item.label} aria-current={tab === item.tab ? "page" : undefined}
                 className={cx("flex flex-col items-center gap-0.5 py-1.5 px-1.5 rounded-full min-w-[58px] press", tab === item.tab ? "text-brand-deep font-black" : "text-mute font-bold")}>
                 <span className="relative">
                   <Icon n={item.icon} fill={tab === item.tab} size={24} />
-                  {item.tab === "notices" && unreadCount > 0 && <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 rounded-full bg-love text-white text-[10px] font-black flex items-center justify-center ring-2 ring-surface">{unreadCount}</span>}
                 </span>
                 <span className="text-[10.5px] leading-none whitespace-nowrap">{item.label}</span>
               </button>
@@ -4012,8 +4297,8 @@
               onDemoAnswer={(id) => deliverDemoReply(id, "answer")} onOpenKakomon={openKakomonOf} />
           )}
           {ask && (
-            <AskSheet me={me} posts={visiblePosts} courseDict={courseDict} preset={ask} context={eventsOpen ? "gather" : tab === "kakomon" ? "kakomon" : "home"} onClose={() => setAsk(null)} onSubmit={submitQuestion}
-              onJoin={joinQuestion} onOpenPost={(id) => { setAsk(null); openPost(id); }} onCreateEvent={() => { setAsk(null); setEventCreate(true); }} onShareKakomon={() => { setAsk(null); setShareOpen(true); }} />
+            <AskSheet me={me} posts={visiblePosts} courseDict={courseDict} preset={ask} context={tab === "events" ? "gather" : tab === "kakomon" ? "kakomon" : "home"} onClose={() => setAsk(null)} onSubmit={submitQuestion}
+              onJoin={joinQuestion} onOpenPost={(id) => { setAsk(null); openPost(id); }} onCreateEvent={() => { setAsk(null); setEventCreate(true); }} onDaiko={() => { setAsk(null); setDaikoOpen(true); }} onShareKakomon={() => { setAsk(null); setShareOpen(true); }} />
           )}
           {ticketIntro && (
             <Dialog onClose={() => setTicketIntro(false)} z={75}>
@@ -4042,16 +4327,13 @@
               onBack={() => setTsushinOpen(false)} onOpenPost={openPost} onWatch={toggleWatch}
               onSearch={(q) => { closeOverlays(); setTab("home"); setCatFilter(""); setQuery(q); }}
               onAsk={() => setAsk({})} onShare={() => setShareOpen(true)}
-              onOpenEvents={() => { setTsushinOpen(false); setEventsOpen(true); }} />
+              onOpenEvents={() => { closeOverlays(); setTab("events"); setEventId("tate1"); }} />
           )}
           {odaiListOpen && <OdaiListPage posts={visiblePosts} term={term} me={me} onBack={() => setOdaiListOpen(false)} onOpen={openPost} />}
-          {eventsOpen && (
-            <EventsPage events={events} promos={promos} me={me} onBack={() => setEventsOpen(false)}
-              onOpenEvent={setEventId} onOpenPromo={setPromoId} onCreate={() => setEventCreate(true)} />
-          )}
           {eventId && (() => { const ev = events.find(e => e.id === eventId); return ev ? <EventSheet ev={ev} onClose={() => setEventId(null)} onInterest={toggleInterest} onCloseGather={closeGather} onReport={(id) => setReportTarget({ eventId: id })} /> : null; })()}
           {promoId && <PromoSheet promo={promos.find(p => p.id === promoId)} onClose={() => setPromoId(null)} showToast={showToast} />}
           {eventCreate && <EventCreateSheet myLabel={displayName({ fac: facShort(me.faculty), grade: me.grade, anon: true })} onClose={() => setEventCreate(false)} onSubmit={createEvent} />}
+          {daikoOpen && <DaikoSheet onClose={() => setDaikoOpen(false)} onSubmit={submitDaiko} onPublish={publishDaiko} />}
           {userCard && <AnswererCard user={userCard} stats={userCard.mine ? myStats : (userCard.stats || null)} onClose={() => setUserCard(null)} />}
           {menuOpen && (
             <MenuPage firstDay={EMPTY_DEMO} me={me} termMode={termMode} setTermMode={setTermMode} notif={notif} setNotif={setNotif}
