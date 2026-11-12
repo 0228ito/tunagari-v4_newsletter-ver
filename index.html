@@ -7,7 +7,7 @@
   ・v3（2026/11/06。過去問→先輩の知恵、閲覧チケットは非表示）の内容はそのまま。
   ・v2（文字を減らした版）に、話題の色・数字・小さな動き・助かった！ランキングを足した版です。文字は増やしていません。
   ・261029_mvp に、既存サービスの イベント／プロモーション／ペタ／つながる をマージしたものです。
-  ・既定は北海道大学。URL末尾に ?univ=otaru で小樽商科大学版。
+  ・既定は北海道大学。URL末尾に ?univ=otaru で小樽商科大学版。メニュー（≡）→「表示する大学」でも切り替えられる（確認用）。
   ・アプリ内「設定 → このプロトタイプについて」に、マージの判断と理由をまとめています。
 -->
 <html lang="ja" class="overflow-x-hidden">
@@ -2320,7 +2320,7 @@
       { title: "デモの動き", items: [
         "データは保存されません。再読み込みで初期状態に戻ります。",
         "質問すると約6秒後に、回答すると約5秒後に、サンプルの反応がお知らせに届きます。",
-        "URL末尾に ?univ=otaru を付けると小樽商科大学版になります。"
+        "URL末尾に ?univ=otaru を付けると小樽商科大学版になります（メニュー →「表示する大学」でも切り替え可）。"
       ] }
     ];
 
@@ -2365,6 +2365,15 @@
                   <Row icon="notifications" label="通知設定" onClick={() => openSub("notif")} />
                 </Group>
                 <Group title="プロトタイプの確認用">
+                  <div className="px-4 py-3.5 space-y-2">
+                    <span className="flex items-center gap-3"><Icon n="school" size={22} className="text-brand-deep" /><span className="text-[14px] font-bold flex-1">表示する大学</span></span>
+                    <Segmented value={UNIV_ID} onChange={(v) => {
+                      const u = new URL(window.location.href);
+                      if (v === ACTIVE_UNIVERSITY) u.searchParams.delete("univ"); else u.searchParams.set("univ", v);
+                      window.location.href = u.toString();
+                    }} options={Object.entries(UNIVERSITIES).map(([id, x]) => ({ value: id, label: x.name }))} />
+                    <p className="text-[11.5px] text-mute">大学名・学部・授業名などの見本データが切り替わります（URL末尾の ?univ=otaru と同じ）。切り替えると最初から読み込み直します</p>
+                  </div>
                   <div className="px-4 py-3.5 space-y-2">
                     <span className="flex items-center gap-3"><Icon n="rocket_launch" size={22} className="text-brand-deep" /><span className="text-[14px] font-bold flex-1">表示するデータ</span></span>
                     <Segmented value={firstDay ? "first" : "usual"} onChange={(v) => {
