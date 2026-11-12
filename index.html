@@ -504,14 +504,15 @@
     const plainTitle = (t) => String(t || "");
     const shortTitle = (t) => { const x = plainTitle(t); return x.length > 24 ? x.slice(0, 24) + "…" : x; };
 
-    // 表示名（名前は出さない。匿名でも学年は出す＝先輩の情報かどうかが分かるように）
+    // 表示名（名前は出さない＝質問・ペタはいつも匿名。11/12：匿名で送るかの確認はなくした）
+    //   ・学年を選んでいれば学年を先に、学部を選んでいればその次に（例：1年・総合）
+    //   ・どちらも選んでいなければ「〇〇大学生」
     const displayName = (u) => {
       if (!u) return "";
       if (u.official) return "TUNAGARI運営";
-      // 表示はふだん「匿名・学年」。学部は本人が表示をオンにしたときだけ。学年を答えていない人は「匿名」
       const g = u.grade ? (u.grade >= 5 ? "院生" : `${u.grade}年`) : "";
-      if (u.anon || !u.fac) return g ? `匿名・${g}` : "匿名";
-      return `${u.fac}${g}`;
+      const parts = [g, u.fac].filter(Boolean);
+      return parts.length ? parts.join("・") : `${U.name}生`;
     };
 
     // ============================================================
@@ -841,7 +842,7 @@
       if (user && user.official) return <img src={LOGO_MARK} alt="" className="flex-shrink-0" style={{ width: size, height: size }} />;
       const g = user && user.grade;
       // 学年の色の丸に、学年の数字（匿名でも学年は表示名に出ているので同じ情報）。学部は表示をオンにした人だけ頭文字を添える
-      const text = !user ? "" : `${!user.anon && user.fac ? String(user.fac).charAt(0) : ""}${g ? (g >= 5 ? "院" : g) : ""}`;
+      const text = !user ? "" : `${user.fac ? String(user.fac).charAt(0) : ""}${g ? (g >= 5 ? "院" : g) : ""}`;
       return (
         <div className="rounded-full flex items-center justify-center font-head font-black flex-shrink-0 text-white"
           style={{ width: size, height: size, fontSize: size * (text.length > 1 ? 0.34 : 0.42), background: `rgb(${gradeRGB(g)})` }} aria-hidden="true">
@@ -878,12 +879,17 @@
       const answers = 3 + (h % 38), thanks = answers * (2 + (h % 4)) + (h % 7), best = Math.floor(answers / (6 + (h % 5)));
       return { answers, thanks, best };
     };
-    function AnswererCard({ user, stats, onClose }) {
+    // ペタした人のカード
+    //   ・ランキングから開いたとき（user.helpful あり）だけ、その人の「助かった！」が多いペタ上位3件と得意な話題を出す
+    //   ・すべての回答の一覧は出さない（まとめて見えると、内容の組み合わせから本人が分かりやすくなるため）
+    //   ・本人が設定で「まとめて表示しない」にしていれば出さない
+    function AnswererCard({ user, stats, onClose, onOpenPost }) {
       const s = stats || demoStats(user);
+      const h = user.helpful;
       return (
         <Sheet onClose={onClose} z={62}>
           <SheetHeader title="ペタした人" icon="person" onClose={onClose} />
-          <div className="px-5 pb-6 pt-1 space-y-4">
+          <div className="px-5 pb-6 pt-1 space-y-4 overflow-y-auto">
             <div className="flex items-center gap-3">
               <Avatar user={user} size={52} />
               <div className="min-w-0">
@@ -896,7 +902,32 @@
               <div className="bg-sunk rounded-2xl py-3"><p className="text-[11px] text-sub font-bold">助かった！</p><p className="font-head font-black text-[22px] text-love-ink">{s.thanks}</p></div>
               <div className="bg-sunk rounded-2xl py-3"><p className="text-[11px] text-sub font-bold">いちばん助かった</p><p className="font-head font-black text-[22px] text-brand-deep">{s.best}</p></div>
             </div>
-            <p className="text-[11.5px] text-mute flex items-start gap-1 leading-relaxed"><Icon n="lock" size={14} className="mt-px flex-shrink-0" />ほかのペタの一覧や名前、閲覧チケットの枚数は表示されません</p>
+            {h && !h.hidden && h.topics.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[12.5px] font-black flex items-center gap-1"><Icon n="star" fill size={16} className="text-brand-deep" />得意な話題</p>
+                <div className="flex flex-wrap gap-1.5">{h.topics.map(t => <span key={t} className="text-[12px] font-bold bg-brand-tint text-brand-deep rounded-full px-2.5 py-1 flex items-center gap-1"><Icon n={catMeta(t).icon} fill size={14} />{catMeta(t).short}</span>)}</div>
+              </div>
+            )}
+            {h && !h.hidden && h.top.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[12.5px] font-black flex items-center gap-1"><Icon n="favorite" fill size={16} className="text-love" />「助かった！」が多いペタ</p>
+                {h.top.map(c => {
+                  const rgb = catRGB(c.cat);
+                  return (
+                    <button key={c.id} onClick={() => onOpenPost && onOpenPost(c.postId)} className="w-full text-left rounded-2xl px-3 py-2.5 press border" style={{ background: `rgb(${rgb} / .07)`, borderColor: `rgb(${rgb} / .25)` }}>
+                      <span className="block text-[11px] font-bold truncate" style={{ color: `rgb(${rgb})` }}>「{plainTitle(c.q)}」へのペタ</span>
+                      <span className="block text-[13px] font-bold leading-relaxed line-clamp-2 mt-0.5">{c.text}</span>
+                      <span className="flex items-center justify-between mt-1 text-[11.5px] font-bold">
+                        <span className="text-love-ink flex items-center gap-0.5"><Icon n="favorite" fill size={13} />助かった！{c.thanks}</span>
+                        <span className="text-brand-deep flex items-center">元の質問<Icon n="chevron_right" size={15} /></span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {h && h.hidden && <p className="text-[12.5px] text-sub bg-sunk rounded-2xl p-3 leading-relaxed">{user.mine ? "設定で「ランキングで自分のペタをまとめて表示」をオフにしているため、ほかの人には上位のペタと得意な話題が表示されません。" : "この人は、ペタをまとめて表示しない設定にしています。"}</p>}
+            <p className="text-[11.5px] text-mute flex items-start gap-1 leading-relaxed"><Icon n="lock" size={14} className="mt-px flex-shrink-0" />{h ? "名前は表示されません。「助かった！」が付いたペタのうち上位3件までを表示し、すべての回答の一覧は出しません" : "ほかのペタの一覧や名前、閲覧チケットの枚数は表示されません"}</p>
           </div>
         </Sheet>
       );
@@ -1117,7 +1148,7 @@
         <button onClick={onOpen} className={cx(wide ? "w-full" : "w-[252px] flex-shrink-0", "text-left bg-surface rounded-3xl border shadow-soft p-4 flex flex-col gap-2.5 press relative", mine ? "border-brand ring-2 ring-brand/20" : "border-line/70")}>
           <span className="flex items-center gap-1.5 text-[11px] text-mute">
             {mine ? <MineBadge /> : <><Icon n={catMeta(post.category).icon} fill size={14} className="text-brand-deep" />{catMeta(post.category).short}・{displayName(post.author)}</>}
-            {unread && <span className="ml-auto bg-brand text-on-brand text-[11px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5"><Icon n="notifications_active" fill size={12} />新着</span>}
+            {unread && <span className="ml-auto bg-brand text-on-brand text-[11px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5"><Icon n="notifications_active" fill size={12} />{unread === true ? "お知らせ" : unread}</span>}
           </span>
           {post.joiners.length > 0 && (
             <span className="self-start inline-flex items-center gap-0.5 bg-brand-tint text-brand-deep text-[11px] font-black px-2 py-0.5 rounded-full"><Icon n="group" size={13} />同じ疑問 {post.joiners.length}人</span>
@@ -1156,7 +1187,7 @@
             {post.tsushin && <span className="text-[11px] font-black text-brand-deep bg-brand-tint rounded-full px-1.5 py-0.5 flex items-center gap-0.5"><Icon n="newspaper" fill size={12} />{post.theme ? "通信の運営テーマ" : "つながり通信より"}</span>}
             {mine ? <MineBadge /> : <span className="text-[12px] text-mute">{displayName(post.author)}</span>}
             <span className="text-[12px] text-mute">・{agoLabel(post.at)}</span>
-            {unread && <span className="ml-auto bg-brand text-on-brand text-[11px] font-black px-2 py-0.5 rounded-full">新着</span>}
+            {unread && <span className="ml-auto bg-brand text-on-brand text-[11px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5"><Icon n="notifications_active" fill size={12} />{unread === true ? "お知らせ" : unread}</span>}
           </div>
           <h3 className="font-head font-bold text-[15.5px] leading-snug flex gap-1.5">
             <span className="text-brand font-black">{recruit ? "募" : "Q."}</span>
@@ -1343,7 +1374,6 @@
     function ProfileForm({ initial, onSave, saveLabel }) {
       const [faculty, setFaculty] = useState(initial.faculty || "");
       const [grade, setGrade] = useState(initial.grade || 0);
-      const [showFac, setShowFac] = useState(initial.anonDefault === false);
       const opts = [...GRADES, 0];
       return (
         <div className="space-y-5">
@@ -1359,20 +1389,17 @@
           </div>
           <div>
             <label className={LABEL} htmlFor="pf-fac">学部（任意）</label>
-            <select id="pf-fac" value={faculty} onChange={(e) => { setFaculty(e.target.value); if (!e.target.value) setShowFac(false); }} className={cx(INPUT, "font-bold")}>
+            <select id="pf-fac" value={faculty} onChange={(e) => setFaculty(e.target.value)} className={cx(INPUT, "font-bold")}>
               <option value="">設定しない</option>
               {U.faculties.map(f => <option key={f}>{f}</option>)}
             </select>
             <p className="text-[11.5px] text-mute mt-1.5">設定すると、同じ学部の質問が届きやすくなります</p>
           </div>
-          <label className={cx("flex items-start gap-3 bg-sunk rounded-3xl p-3.5 select-none", faculty ? "cursor-pointer" : "opacity-50")}>
-            <input type="checkbox" disabled={!faculty} checked={showFac && !!faculty} onChange={(e) => setShowFac(e.target.checked)} className="mt-1 w-4 h-4 accent-[rgb(var(--brand))]" />
-            <span className="leading-relaxed">
-              <span className="font-bold text-[14px] block">質問・ペタに学部も表示する</span>
-              <span className="text-[12px] text-sub block">ふだんは「匿名・学年」だけ。学部×学年は人数が少なく、人が絞り込まれやすいため最初はオフです</span>
-            </span>
-          </label>
-          <button onClick={() => onSave({ ...initial, faculty, grade, anonDefault: !(showFac && faculty) })} className={cx(BTN_PRIMARY, "w-full py-4")}>{saveLabel}</button>
+          <div className="bg-sunk rounded-3xl p-3.5 leading-relaxed">
+            <span className="font-bold text-[14px] block">質問・ペタでの表示：{displayName({ fac: facShort(faculty), grade })}</span>
+            <span className="text-[12px] text-sub block">名前は出ません。選んだ学年・学部だけが表示されます</span>
+          </div>
+          <button onClick={() => onSave({ ...initial, faculty, grade, anonDefault: true })} className={cx(BTN_PRIMARY, "w-full py-4")}>{saveLabel}</button>
         </div>
       );
     }
@@ -1491,8 +1518,8 @@
         const g = (top) => row("g", "人を集める", "diversity_3", { icon: "diversity_3", label: "仲間を募集・イベントを作る", sub: "勉強仲間・イベント", onClick: onCreateEvent }, top);
         const w = (top) => row("w", "知恵を残す", "lightbulb", { icon: "lightbulb", label: "知恵を残す", sub: "授業のコツ・対策メモ", onClick: onShareKakomon }, top);
         // 開いた画面に合う項目を一番上に（ホーム＝質問／知恵タブ＝知恵を残す／仲間・イベント＝募集・イベント）
-        const d = (top) => row("d", "団体のイベントを告知する", "auto_awesome", { icon: "auto_awesome", label: "イベントページの作成を頼む（無料）", sub: "サークル・ゼミ・研究室向け。運営がつくります", onClick: onDaiko }, top);
-        const order = (context === "kakomon" ? [w(true), q(false), g(false)] : context === "gather" ? [g(true), q(false), w(false)] : [q(true), g(false), w(false)]).concat(onDaiko ? [d(false)] : []);
+        // 「イベントページの作成を頼む」は投稿メニューから外し、イベントタブのバナーだけに（11/12）
+        const order = context === "kakomon" ? [w(true), q(false), g(false)] : context === "gather" ? [g(true), q(false), w(false)] : [q(true), g(false), w(false)];
         return (
           <Sheet onClose={onClose}>
             <SheetHeader title="投稿する" icon="add_circle" onClose={onClose} />
@@ -1619,13 +1646,6 @@
               <textarea id="ask-detail" rows={3} value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="状況を少し書くと、答えてもらいやすくなります" className={cx(INPUT, "leading-relaxed")} />
             </div>
 
-            <label className="flex items-start gap-3 bg-sunk rounded-3xl p-3.5 cursor-pointer select-none">
-              <input type="checkbox" checked={anon} onChange={(e) => setAnon(e.target.checked)} className="mt-1 w-4 h-4 accent-[rgb(var(--brand))]" />
-              <span className="leading-relaxed">
-                <span className="font-bold text-[14px] block">匿名で質問する</span>
-                <span className="text-[12px] text-sub block">表示：{displayName({ fac: facShort(me.faculty), grade: me.grade, anon })}</span>
-              </span>
-            </label>
             <p className="text-[12px] text-mute">※ 個人の特定・悪口はNG。<span className="font-bold">質問はずっと無料</span>です。</p>
           </div>
           <div className="px-4 pt-3 pb-4 border-t border-line space-y-1.5">
@@ -1806,15 +1826,8 @@
             <div className="px-4 pt-2.5 pb-3.5 border-t border-line bg-surface space-y-1.5">
               {/* はじめてペタる人にだけ、言葉の意味を1回案内 */}
               {firstPeta && !recruit && <p className="text-[12px] bg-brand-tint text-brand-deep rounded-xl px-3 py-2 leading-relaxed"><b>ペタ＝回答。</b>気軽に本音をどうぞ</p>}
-              <div className="flex items-center justify-between text-[12px]">
-                <span className={cx("font-bold flex items-center gap-1", anon ? "text-brand-deep" : "text-sub")}><Icon n="visibility_off" fill={anon} size={14} />{anon ? "匿名" : "学部・学年"}で送信：{displayName({ fac: facShort(me.faculty), grade: me.grade, anon })}</span>
-                {TICKETS_ENABLED && !answeredByMe && !recruit && <span className="font-black text-brand-deep flex items-center gap-0.5"><Icon n="confirmation_number" fill size={14} />ペタると閲覧チケット+{TICKET_RULES.answer}</span>}
-              </div>
+              {TICKETS_ENABLED && !answeredByMe && !recruit && <p className="text-[12px] font-black text-brand-deep flex items-center justify-end gap-0.5"><Icon n="confirmation_number" fill size={14} />ペタると閲覧チケット+{TICKET_RULES.answer}</p>}
               <div className="flex gap-2 items-center">
-                <button onClick={() => setAnon(!anon)} aria-pressed={anon} aria-label="匿名で送る（学部は非表示）"
-                  className={cx("w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 press", anon ? "bg-brand text-on-brand" : "bg-sunk text-sub")}>
-                  <Icon n="visibility_off" fill={anon} size={22} />
-                </button>
                 <input type="text" value={input} onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) send(); }}
                   placeholder={recruit ? "参加したい！ひとこと…" : odai ? "あなたの答えをペタる…" : "あなたの経験を教えてください…"} className={cx(INPUT, "flex-1 min-w-0 rounded-full")} />
@@ -2038,8 +2051,9 @@
                 {item.photo && <img src={item.photo} alt="添付の画像" className="w-full rounded-2xl border border-line" />}
                 <p className="text-[11px] text-mute">※ デモ用のダミーです</p>
                 <button onClick={() => onThanks(item.id)} disabled={item.liked}
-                  className={cx("w-full rounded-2xl py-3 font-black text-[14px] flex items-center justify-center gap-1.5 press", item.liked ? "bg-love-tint text-love-ink" : "bg-love text-white shadow-soft")}>
-                  <Icon n="favorite" fill size={18} />{item.liked ? "「助かった！」を送りました" : "残してくれた人に「助かった！」"}
+                  aria-pressed={!!item.liked}
+                  className={cx("w-full rounded-2xl py-3 font-black text-[14px] flex items-center justify-center gap-1.5 press border", item.liked ? "bg-love text-white border-love" : "bg-surface text-ink border-line")}>
+                  <Icon n="favorite" fill={!!item.liked} size={18} className={item.liked ? "" : "text-love"} />{item.liked ? "「助かった！」を送りました" : "残してくれた人に「助かった！」"}
                 </button>
               </div>
             ) : (
@@ -2305,6 +2319,24 @@
         "イベントの主催者：日時ありは主催団体名を毎回入力（必須）。いつでもの募集は「匿名・学年」か団体名",
         "言葉：聞く側は「質問」のまま、答える側は「ペタ」に統一（回答→ペタ、回答する→ペタる、回答N件→ペタN枚、AIの回答まとめ→AIのペタまとめ）。初めてペタるときだけ「『ペタ』は回答のこと」と案内。付せんの色帯はやめ、ペタのカードは白地＋枠線で読みやすく"
       ] },
+      { title: "ランキングから「助かった！が多いペタ」を見る（11/12）", items: [
+        "小樽商大とのWSで「助かったが多い人は信頼できる」との声。ランキングで人を押すと、その人の「助かった！」が多いペタ上位3件と、得意な話題（助かった！の多いカテゴリ2つまで）を出す",
+        "すべての回答の一覧は出さない：同じ人の回答が並ぶと、内容の組み合わせと学年・学部の表示から本人が分かりやすくなるため。対象は「助かった！」が付いたペタだけ",
+        "答える人は設定（≡）の「ランキングで自分のペタをまとめて表示」をオフにできる（既定はオン）",
+        "プロトタイプは表示名（学年・学部）ごとに集計しているため、同じ表示名の別の人がまとまる。本番は利用者ごとに集計する"
+      ] },
+      { title: "イベント・知恵・ランキングの調整（11/12）", items: [
+        "イベント作成（日時・場所を決めるとき）に「参加申し込みフォームのURL（任意）」を追加。入れたときだけ、イベントページに「申し込みフォームを開く」を出す",
+        "イベントタブの「イベントページ、運営がつくります（無料）」を1行の帯に",
+        "知恵の「残してくれた人に『助かった！』」を、質問のペタの「助かった！」と同じ色の付き方に（押す前＝白地・枠線、押した後＝赤の塗り）",
+        "助かった！ランキングの1〜3位のカードの縁を4位以降と同じに（メダルの色は順位の丸だけ）"
+      ] },
+      { title: "表示・投稿の見直し（11/12）", items: [
+        "質問・ペタはいつも匿名（名前は出ない）なので、「匿名で送る」の確認・切り替えを削除。表示は 学年→学部 の順（例：1年・総合）。どちらも選んでいなければ「〇〇大学生」",
+        "質問カードの「新着」は、未読のお知らせが届いた質問に付くラベルだった（質問の新しさではない）。紛らわしいため「新しいペタ」「AIまとめ」「助かった！」など、届いた内容を書くようにした",
+        "投稿メニューから「イベントページの作成を頼む」を削除。イベントタブのバナーだけに",
+        "つながり通信の「聞きたいことを送る」「あなたの悩みも、次の号に」は、投稿の「先輩に質問する」の入力画面を直接開く"
+      ] },
       { title: "つながり通信の答える導線（11/12）", items: [
         "関連する質問の「〇〇の質問を見る」（検索結果へ移動）を削除。記事に戻るまでが長く離脱につながるため。関連する質問はシートで開き、閉じると記事の同じ位置に戻る",
         "運営テーマ：号をAIで読み込み、総評として上級生に聞きたいことを1つ「運営テーマ」として発行。記事の「ペタで答える」でその質問をシートで開く。ホームにも運営の質問（「通信の運営テーマ」ラベル付き）として載る。知恵ではなくペタで答えてもらう",
@@ -2334,7 +2366,7 @@
       ] }
     ];
 
-    function MenuPage({ firstDay, me, termMode, setTermMode, notif, setNotif, onClose, onEditProfile, onLogout }) {
+    function MenuPage({ firstDay, me, termMode, setTermMode, notif, setNotif, rankShowMine = true, setRankShowMine = () => {}, onClose, onEditProfile, onLogout }) {
       useScrollLock();
       const [sub, setSub] = useState(null);
       const bodyRef = useRef(null);
@@ -2373,6 +2405,11 @@
                     <p className="text-[11.5px] text-mute">ふだんは自動。デモで前期の見え方を確かめるときに切り替えてください</p>
                   </div>
                   <Row icon="notifications" label="通知設定" onClick={() => openSub("notif")} />
+                  <div className="flex items-center gap-3 px-4 py-3.5">
+                    <Icon n="trophy" size={22} className="text-brand-deep" />
+                    <span className="flex-1 min-w-0"><span className="block text-[14px] font-bold">ランキングで自分のペタをまとめて表示</span><span className="block text-[11.5px] text-mute">オフにすると、ランキングでは一番助かったペタ1件だけを表示し、上位のペタと得意な話題は出しません</span></span>
+                    <Toggle on={rankShowMine} onChange={setRankShowMine} label="ランキングで自分のペタをまとめて表示" />
+                  </div>
                 </Group>
                 <Group title="プロトタイプの確認用">
                   <div className="px-4 py-3.5 space-y-2">
@@ -2504,12 +2541,12 @@
         { id: "e3", scheduled: true, title: "先輩と話す、ゼミ・研究室の選び方座談会", type: ["オフライン", "オンライン"], tags: ["情報交換", "まったり交流"], host: "学生団体（キャリア系）", start: at(10, 18), end: at(10, 19, 30), place: "共用講義棟（オンライン同時配信）", capacity: 40, interested: 26, mine: false, myInterest: false, grades: [1, 2], tone: 2, createdAt: now - 4 * day, joiners: [],
           desc: "3・4年生がゼミ・研究室を選んだ理由と、選ぶ前にやっておけばよかったことを話します。質問はTUNAGARIのQ&Aでも受付中。" },
         // 日時を決めない、ゆるい募集（旧 仲間募集）
-        { id: "g1", scheduled: false, title: "TOEIC対策の仲間を探しています", tags: ["勉強会", "おひとり様歓迎"], host: "", hostLabel: `匿名・1年`, place: "平日の夕方・図書館あたり", interested: 2, mine: false, myInterest: false, grades: [1, 2, 3, 4, 5], tone: 0, createdAt: now - 5 * 60 * MIN,
+        { id: "g1", scheduled: false, title: "TOEIC対策の仲間を探しています", tags: ["勉強会", "おひとり様歓迎"], host: "", hostLabel: `1年`, place: "平日の夕方・図書館あたり", interested: 2, mine: false, myInterest: false, grades: [1, 2, 3, 4, 5], tone: 0, createdAt: now - 5 * 60 * MIN,
           desc: "1人だと続かないので、週2くらいで一緒に勉強できる人を探しています。学年・学部は問いません！",
-          joiners: [{ id: "gj1", who: "総合1年", note: "火・木なら行けます" }, { id: "gj2", who: "匿名・2年", note: "3月に受ける予定なので混ぜてください" }] },
+          joiners: [{ id: "gj1", who: "総合1年", note: "火・木なら行けます" }, { id: "gj2", who: "2年", note: "3月に受ける予定なので混ぜてください" }] },
         { id: "g2", scheduled: false, title: U.buddyTitle, tags: ["勉強会", "まったり交流", "途中参加・途中退場OK"], host: "", hostLabel: "ゆうき（3年）", place: "", interested: 1, mine: false, myInterest: false, grades: [1, 2, 3, 4, 5], tone: 1, createdAt: now - 6 * day,
           desc: "1人だと続かないので、ゆるく一緒にがんばれる人を探しています。途中参加も歓迎です。",
-          joiners: [{ id: "gj3", who: "匿名・2年", note: "見学だけでもいいですか？" }] }
+          joiners: [{ id: "gj3", who: "2年", note: "見学だけでもいいですか？" }] }
       ];
     }
     // 📢 プロモーション（大学からの依頼イベント・臨床研究の参加者募集）
@@ -2629,16 +2666,16 @@
               <p className="flex gap-2"><Icon n="flag_circle" size={18} className="text-brand-deep" />主催：{ev.mine ? `あなた（${hostName(ev)}）` : hostName(ev)}</p>
             </div>
             {ev.desc && <p className="text-[14px] leading-relaxed whitespace-pre-wrap">{ev.desc}</p>}
-            {ev.daiko && (
+            {/* 参加申し込みフォーム：URLが入っているときだけ表示（作成時に空なら出さない） */}
+            {ev.formUrl && (
               <div className="bg-sunk rounded-3xl p-3.5 space-y-2">
-                {ev.formUrl ? (<>
-                  <p className="text-[13px] font-black flex items-center gap-1"><Icon n="assignment" size={16} className="text-brand-deep" />申し込みは主催者のフォームから</p>
-                  {/^https?:\/\//.test(ev.formUrl) ? <a href={ev.formUrl} target="_blank" rel="noopener noreferrer" className={cx(BTN_SOFT, "w-full bg-surface flex items-center justify-center gap-1")}>申し込みフォームを開く<Icon n="open_in_new" size={16} /></a>
-                    : <p className="text-[12.5px] text-sub">{ev.formUrl}</p>}
-                </>) : null}
-                <p className="text-[11.5px] text-mute leading-relaxed">このページは主催者の依頼で運営が作成し、主催者が内容を確認して公開しました。{ev.formUrl ? "フォームの回答は主催者だけが見られ、TUNAGARI運営は受け取りません。" : ""}</p>
+                <p className="text-[13px] font-black flex items-center gap-1"><Icon n="assignment" size={16} className="text-brand-deep" />参加の申し込みは主催者のフォームから</p>
+                {/^https?:\/\//.test(ev.formUrl) ? <a href={ev.formUrl} target="_blank" rel="noopener noreferrer" className={cx(BTN_SOFT, "w-full bg-surface flex items-center justify-center gap-1")}>申し込みフォームを開く<Icon n="open_in_new" size={16} /></a>
+                  : <p className="text-[12.5px] text-sub break-all">{ev.formUrl}</p>}
+                <p className="text-[11.5px] text-mute leading-relaxed">フォームの回答は主催者だけが見られ、TUNAGARI運営は受け取りません。</p>
               </div>
             )}
+            {ev.daiko && <p className="text-[11.5px] text-mute leading-relaxed px-1">このページは主催者の依頼で運営が作成し、主催者が内容を確認して公開しました。</p>}
             {(ev.joiners || []).length > 0 && (
               <div className="space-y-1.5">
                 <p className="text-[13px] font-black flex items-center gap-1"><Icon n="waving_hand" size={16} className="text-brand-deep" />参加したい人のひとこと</p>
@@ -2800,13 +2837,10 @@
     }
     function DaikoBanner({ onOpen }) {
       return (
-        <button onClick={onOpen} className="w-full text-left rounded-3xl border-[1.5px] border-dashed border-brand bg-brand-tint p-4 flex items-center gap-3 press">
-          <span className="w-11 h-11 rounded-2xl bg-brand text-on-brand flex items-center justify-center flex-shrink-0"><Icon n="auto_awesome" fill size={22} /></span>
-          <span className="flex-1 min-w-0">
-            <span className="block font-black text-[14px]">イベントページ、運営がつくります（無料）</span>
-            <span className="block text-[11.5px] text-sub leading-snug">サークル・ゼミ・研究室の新歓や発表会など。情報を送るだけで、見やすいページにして載せます</span>
-          </span>
-          <Icon n="chevron_right" className="text-brand-deep" />
+        <button onClick={onOpen} aria-label="イベントページ、運営がつくります（無料）。サークル・ゼミ・研究室向け" className="w-full text-left rounded-full border border-dashed border-brand bg-brand-tint pl-3 pr-2 py-2 flex items-center gap-2 press">
+          <Icon n="auto_awesome" fill size={18} className="text-brand-deep flex-shrink-0" />
+          <span className="flex-1 min-w-0 truncate text-[13px] font-black">イベントページ、運営がつくります<span className="text-[11.5px] font-bold text-sub ml-1">無料</span></span>
+          <Icon n="chevron_right" size={18} className="text-brand-deep flex-shrink-0" />
         </button>
       );
     }
@@ -3031,6 +3065,7 @@
       const [to, setTo] = useState("15:00");
       const [place, setPlace] = useState("");
       const [cap, setCap] = useState("");
+      const [formUrl, setFormUrl] = useState("");   // 参加申し込みフォームのURL（任意。空なら掲載ページに出さない）
       const [hostMode, setHostMode] = useState("anon");   // anon | org（ニックネームは廃止）
       const [org, setOrg] = useState("");
       const [agree, setAgree] = useState(false);
@@ -3043,7 +3078,7 @@
         const host = mode === "org" ? org.trim() : "";
         const hostLabel = mode === "anon" ? myLabel : "";
         const v = { scheduled, title: title.trim(), desc: desc.trim(), tags, host, hostLabel, place: place.trim() };
-        if (scheduled) Object.assign(v, { type, start: new Date(`${date}T${from}`).getTime(), end: new Date(`${date}T${to}`).getTime(), capacity: Number(cap) || 0 });
+        if (scheduled) Object.assign(v, { type, start: new Date(`${date}T${from}`).getTime(), end: new Date(`${date}T${to}`).getTime(), capacity: Number(cap) || 0, formUrl: formUrl.trim() });
         onSubmit(v);
       };
       return (
@@ -3082,6 +3117,13 @@
                 </div>
               )}
               <div><label className={LABEL} htmlFor="ev-place">{scheduled ? "開催場所" : "場所のめやす（任意）"}</label><input id="ev-place" value={place} onChange={(e) => setPlace(e.target.value)} placeholder={scheduled ? "例：図書館 グループ学習室／Zoom" : "例：平日の夕方・図書館あたり"} className={cx(INPUT, "bg-surface")} /></div>
+              {scheduled && (
+                <div className="animate-fade-in">
+                  <label className={LABEL} htmlFor="ev-form">参加申し込みフォームのURL（任意）</label>
+                  <input id="ev-form" type="url" inputMode="url" value={formUrl} onChange={(e) => setFormUrl(e.target.value)} placeholder="例：https://forms.gle/..." className={cx(INPUT, "bg-surface")} />
+                  <p className="text-[11.5px] text-mute mt-1.5">入れると、イベントページに「申し込みフォームを開く」が出ます。入れなければ表示されません</p>
+                </div>
+              )}
             </div>
 
             <div>
@@ -3094,7 +3136,7 @@
               <span className={LABEL}>{scheduled ? "主催団体名（必須）" : "主催者の表示"}</span>
               {!scheduled && (
                 <div className="grid grid-cols-2 gap-1.5 mb-2">
-                  {[["anon", `匿名（${myLabel.replace(/^匿名・?/, "") || "学年なし"}）`, "visibility_off"], ["org", "団体名", "groups"]].map(([v, l, ic]) => (
+                  {[["anon", `匿名（${myLabel}）`, "visibility_off"], ["org", "団体名", "groups"]].map(([v, l, ic]) => (
                     <button key={v} onClick={() => setHostMode(v)} aria-pressed={mode === v}
                       className={cx("py-2.5 rounded-2xl text-[12.5px] font-bold border-[1.5px] flex items-center justify-center gap-1 press", mode === v ? "bg-brand-tint text-brand-deep border-brand" : "bg-surface text-sub border-line")}>
                       <Icon n={ic} fill={mode === v} size={16} />{l}
@@ -3386,7 +3428,7 @@
     //   ・名前は出さない（表示名＝匿名・学年。学部は本人がオンにしたときだけ）
     //   ・ほかのペタの一覧は出さない（回答者カードと同じ考え方）。ペタを押すと元の質問へ
     //   ・デモでは表示名ごとにまとめている。本番はサーバーで利用者ごとに集計する
-    function RankingPage({ posts, onBack, onOpenPost, onOpenUser }) {
+    function RankingPage({ posts, showMine = true, onBack, onOpenPost, onOpenUser }) {
       useScrollLock();
       const [cat, setCat] = useState("");
       const rows = useMemo(() => {
@@ -3395,15 +3437,27 @@
           if (!c.user || c.user.official || !c.text) return;
           if (cat && (p.odai ? "運営のお題" : p.category) !== cat) return;
           const key = c.user.mine ? "__me" : displayName(c.user);
-          const r = m.get(key) || { user: c.user, thanks: 0, answers: 0, best: null };
+          // ※ プロトタイプは表示名ごとに集計（見本の人にIDがないため）。本番は利用者ごとに集計する
+          const r = m.get(key) || { user: c.user, thanks: 0, answers: 0, best: null, petas: [] };
           r.thanks += c.thanks || 0; r.answers += 1;
-          if (!r.best || (c.thanks || 0) > (r.best.thanks || 0)) r.best = { ...c, postId: p.id, q: p.title, cat: p.odai ? "運営のお題" : p.category };
+          const pc = { ...c, postId: p.id, q: p.title, cat: p.odai ? "運営のお題" : p.category };
+          r.petas.push(pc);
+          if (!r.best || (c.thanks || 0) > (r.best.thanks || 0)) r.best = pc;
           m.set(key, r);
         }));
         return [...m.values()].filter(r => r.thanks > 0).sort((a, b) => b.thanks - a.thanks || b.answers - a.answers).slice(0, 10);
       }, [posts, cat]);
       const cats = useMemo(() => [...new Set(posts.filter(p => p.comments.length && !p.odai).map(p => p.category))], [posts]);
       const medal = ["217 160 30", "140 152 168", "190 110 60"];
+      // 上位のペタ（助かった！が付いたものだけ・3件まで）と得意な話題（助かった！の合計が多いカテゴリ2つまで。お題は除く）
+      const helpfulOf = (r) => {
+        if (r.user.mine && !showMine) return { hidden: true, top: [], topics: [] };
+        const top = r.petas.filter(c => (c.thanks || 0) > 0).sort((a, b) => b.thanks - a.thanks).slice(0, 3);
+        const byCat = {};
+        r.petas.forEach(c => { if (c.cat !== "運営のお題" && (c.thanks || 0) > 0) byCat[c.cat] = (byCat[c.cat] || 0) + c.thanks; });
+        const topics = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => k);
+        return { top, topics };
+      };
       return (
         <div className="fixed inset-0 z-[25] bg-bg flex flex-col animate-push-in" role="region" aria-label="助かった！ランキング">
           <div className="w-full max-w-md mx-auto flex-1 flex flex-col min-h-0">
@@ -3424,16 +3478,16 @@
               {rows.map((r, i) => {
                 const c = catRGB(r.best.cat);
                 return (
-                  <div key={i} className={cx("rounded-3xl bg-surface border shadow-soft p-3.5 space-y-2.5 animate-fade-up", i < 3 ? "border-transparent" : "border-line")}
-                    style={{ animationDelay: `${Math.min(i, 6) * 50}ms`, ...(i < 3 ? { boxShadow: `0 0 0 2px rgb(${medal[i]} / .55)` } : {}) }}>
-                    <button onClick={() => onOpenUser({ ...r.user, stats: { answers: r.answers, thanks: r.thanks, best: r.best.thanks || 0 } })} className="w-full flex items-center gap-3 text-left press" aria-label={`${r.user.mine ? "あなた" : displayName(r.user)}の数字を見る`}>
+                  <div key={i} className="rounded-3xl bg-surface border border-line shadow-soft p-3.5 space-y-2.5 animate-fade-up"
+                    style={{ animationDelay: `${Math.min(i, 6) * 50}ms` }}>
+                    <button onClick={() => onOpenUser({ ...r.user, stats: { answers: r.answers, thanks: r.thanks, best: r.best.thanks || 0 }, helpful: helpfulOf(r) })} className="w-full flex items-center gap-3 text-left press" aria-label={`${r.user.mine ? "あなた" : displayName(r.user)}の助かった！が多いペタを見る`}>
                       <span className={cx("w-9 h-9 rounded-full flex items-center justify-center font-head font-black text-[16px] flex-shrink-0", i >= 3 && "bg-sunk text-sub")}
                         style={i < 3 ? { background: `rgb(${medal[i]})`, color: "#fff" } : undefined}>
                         {i < 3 ? <Icon n="trophy" fill size={19} /> : i + 1}
                       </span>
                       <span className="flex-1 min-w-0">
                         <span className="block text-[14.5px] font-black">{i < 3 && <span className="mr-1">{i + 1}位</span>}{r.user.mine ? "あなた" : displayName(r.user)}</span>
-                        <span className="block text-[11.5px] text-mute font-bold">ペタ {r.answers}枚</span>
+                        <span className="block text-[11.5px] text-mute font-bold">ペタ {r.answers}枚<span className="text-brand-deep ml-1.5 inline-flex items-center">上位のペタを見る<Icon n="chevron_right" size={14} /></span></span>
                       </span>
                       <span className="text-right flex-shrink-0">
                         <span className="block font-head font-black text-[20px] leading-none text-love-ink">{r.thanks}</span>
@@ -3452,7 +3506,7 @@
                 );
               })}
               {rows.length === 0 && <EmptyState icon="trophy" text="まだ「助かった！」が集まっていません" />}
-              <p className="text-[11.5px] text-mute flex items-start gap-1 leading-relaxed px-1 pt-1"><Icon n="lock" size={14} className="mt-px flex-shrink-0" />名前は表示されません。1人につき、いちばん助かったペタ1枚だけを表示しています</p>
+              <p className="text-[11.5px] text-mute flex items-start gap-1 leading-relaxed px-1 pt-1"><Icon n="lock" size={14} className="mt-px flex-shrink-0" />名前は表示されません。ここでは1人につき、いちばん助かったペタ1枚を表示しています。人を押すと「助かった！」が多いペタ（上位3件まで）と得意な話題が見られます</p>
             </div>
           </div>
         </div>
@@ -3630,7 +3684,7 @@
             {senpai && (
               <div className="space-y-2">
                 <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} placeholder="あなたの経験を教えてください" aria-label="ペタを書く" className={cx(INPUT, "resize-none leading-relaxed")} />
-                <p className="text-[11.5px] text-mute leading-relaxed">答えると、この内容が「つながり通信より」の質問としてホームに載り、あなたのペタが最初の答えになります（匿名・学年で表示）</p>
+                <p className="text-[11.5px] text-mute leading-relaxed">答えると、この内容が「つながり通信より」の質問としてホームに載り、あなたのペタが最初の答えになります</p>
                 <button disabled={!text.trim()} onClick={() => onAnswer(text.trim())} className={cx(BTN_PRIMARY, "w-full flex items-center justify-center gap-1")}><Icon n="sticky_note_2" fill size={18} />ペタで答える</button>
               </div>
             )}
@@ -3850,10 +3904,11 @@
               )}
             </div>
           </div>
-          {wanted && issue && (
+          {wanted && issue && ReactDOM.createPortal(
             <TsushinWantedSheet w={wanted} me={me} onClose={() => setWanted(null)}
               onAnswer={(text) => { onAnswerWanted(issue, wanted, text); setWanted(null); }}
-              onAsk={(t, c) => { setWanted(null); onAskText(t, c); }} />
+              onAsk={(t, c) => { setWanted(null); onAskText(t, c); }} />,
+            document.body
           )}
         </div>
       );
@@ -3883,6 +3938,7 @@
       const [catFilter, setCatFilter] = useState("");
       const [termMode, setTermMode] = useState("auto");
       const [notif, setNotif] = useState({});
+      const [rankShowMine, setRankShowMine] = useState(true);   // ランキングで自分のペタ（上位3件・得意な話題）をまとめて表示するか
       const [selectedPostId, setSelectedPostId] = useState(null);
       const [ask, setAsk] = useState(null);                 // null | { tpl?, cat? }
       const [reportTarget, setReportTarget] = useState(null);
@@ -3932,7 +3988,11 @@
       // 別の時期の「今週のお題」（デモ用）は表示しない
       const visiblePosts = posts.filter(p => !p.hidden && !(p.odai && p.odai.current && p.odai.term !== term0));
       const unreadCount = notices.filter(n => !n.read).length;
-      const unreadPostIds = new Set(notices.filter(n => !n.read && n.postId).map(n => n.postId));
+      // 質問カードのラベル：未読のお知らせがある質問に「何が届いたか」を出す（質問の投稿日時とは別。一番新しいお知らせの種類）
+      //   ・質問が新しく投稿されたことを示す「新着」ではない（カードの「〇時間前」は質問を投稿した時刻のまま）
+      const UNREAD_LABEL = { answer: "新しいペタ", watch: "新しいペタ", join: "新しいペタ", summary: "AIまとめ", thanks: "助かった！", react: "なるほど" };
+      const unreadPostIds = new Map();
+      notices.filter(n => !n.read && n.postId).forEach(n => { if (!unreadPostIds.has(n.postId)) unreadPostIds.set(n.postId, UNREAD_LABEL[n.kind] || "お知らせ"); });
 
       const showToast = (m) => { setToast(m); clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(null), 2600); };
       const pushNotice = (n) => { if (notif[n.kind === "join" ? "watch" : n.kind] === false) return; setNotices(prev => [{ id: `n${Date.now()}${Math.random()}`, at: Date.now(), read: false, ...n }, ...prev]); };
@@ -4038,7 +4098,7 @@
         closeOverlays(); scrollMem.current.events = 0; setTab("events"); window.scrollTo(0, 0);
         showToast(v.scheduled ? "イベントを公開しました" : "仲間を募集しました");
         later(() => {
-          setEvents(prev => prev.map(e => e.id === id ? { ...e, interested: e.interested + 1, joiners: [...(e.joiners || []), { id: `d${Date.now()}`, who: "匿名・1年", note: "参加したいです！" }] } : e));
+          setEvents(prev => prev.map(e => e.id === id ? { ...e, interested: e.interested + 1, joiners: [...(e.joiners || []), { id: `d${Date.now()}`, who: "1年", note: "参加したいです！" }] } : e));
           pushNotice({ kind: "event", title: v.title, preview: "あなたのイベントに「参加したい」が届きました（相手への連絡は主催者から）" });
         }, DEMO_REPLY_MS);
       };
@@ -4322,7 +4382,7 @@
                     </div>
                     {results.length === 0
                       ? <EmptyState text="見つかりませんでした。質問してみませんか？" action="この内容で質問する" onAction={() => setAsk({ cat: catFilter || undefined, text: query.trim() || undefined })} />
-                      : results.map(p => <QuestionRow key={p.id} post={p} tokens={tokens} showTop unread={unreadPostIds.has(p.id)} onOpen={() => openPost(p.id)} onWatch={toggleWatch} />)}
+                      : results.map(p => <QuestionRow key={p.id} post={p} tokens={tokens} showTop unread={unreadPostIds.get(p.id)} onOpen={() => openPost(p.id)} onWatch={toggleWatch} />)}
                   </div>
                 ) : (
                   <>
@@ -4337,12 +4397,12 @@
                         </div>
                       </div>
                       {odaiSlot === -1 && odaiCard}
-                      {pinnedQ.length > 0 && <MyPinned label="ペタが届くとお知らせします">{pinnedQ.map(p => <QuestionRow key={p.id} post={p} showTop unread={unreadPostIds.has(p.id)} onOpen={() => openPost(p.id)} onWatch={toggleWatch} />)}</MyPinned>}
+                      {pinnedQ.length > 0 && <MyPinned label="ペタが届くとお知らせします">{pinnedQ.map(p => <QuestionRow key={p.id} post={p} showTop unread={unreadPostIds.get(p.id)} onOpen={() => openPost(p.id)} onWatch={toggleWatch} />)}</MyPinned>}
                       {homeFeed.map((p, i) => (
                         <React.Fragment key={p.id}>
                           {p.__answerHead && <p id="waiting" className="text-[12px] font-black text-brand-deep flex items-center gap-1 px-1 pt-1 scroll-mt-20"><Icon n="forum" size={15} />{me.grade === 1 ? "ペタ募集中" : `後輩がペタを待っています`}</p>}
                           {p.__afterWait && <p className="text-[12px] font-black text-sub flex items-center gap-1 px-1 pt-2"><Icon n="forum" size={15} />ほかの質問</p>}
-                          <QuestionRow post={p} showTop delay={Math.min(i, 6) * 60} unread={unreadPostIds.has(p.id)} onOpen={() => openPost(p.id)} onWatch={toggleWatch} />
+                          <QuestionRow post={p} showTop delay={Math.min(i, 6) * 60} unread={unreadPostIds.get(p.id)} onOpen={() => openPost(p.id)} onWatch={toggleWatch} />
                           {i === odaiSlot && odaiCard}
                         </React.Fragment>
                       ))}
@@ -4437,11 +4497,11 @@
             return item ? <KakomonSheet item={item} tickets={tickets} onClose={() => setKakomonId(null)} onUnlock={unlockKakomon} onThanks={kakomonThanks} onEarn={goEarn} /> : null;
           })()}
           {shareOpen && <ShareKakomonSheet courseDict={courseDict} onClose={() => setShareOpen(false)} onSubmit={shareKakomon} />}
-          {rankOpen && <RankingPage posts={visiblePosts} onBack={() => setRankOpen(false)} onOpenPost={openPost} onOpenUser={setUserCard} />}
+          {rankOpen && <RankingPage posts={visiblePosts} showMine={rankShowMine} onBack={() => setRankOpen(false)} onOpenPost={openPost} onOpenUser={setUserCard} />}
           {tsushinOpen && (
             <TsushinPage issueId={tsushinIssue} setIssueId={(id) => { setTsushinIssue(id); if (id) setTsushinRead(prev => prev.includes(id) ? prev : [...prev, id]); }} readIds={tsushinRead} posts={visiblePosts} me={me} entryId={tsushinEntry}
               onBack={() => setTsushinOpen(false)} onOpenPost={openPost} onWatch={toggleWatch}
-              onAsk={() => setAsk({})} onAskText={(text, cat) => setAsk({ text, cat })} onAnswerWanted={answerTsushinWanted} onShare={() => setShareOpen(true)}
+              onAsk={() => setAsk({ direct: true })} onAskText={(text, cat) => setAsk({ text, cat })} onAnswerWanted={answerTsushinWanted} onShare={() => setShareOpen(true)}
               onOpenEvents={() => { closeOverlays(); setTab("events"); setEventId("tate1"); }} />
           )}
           {odaiListOpen && <OdaiListPage posts={visiblePosts} term={term} me={me} onBack={() => setOdaiListOpen(false)} onOpen={openPost} />}
@@ -4449,15 +4509,15 @@
           {promoId && <PromoSheet promo={promos.find(p => p.id === promoId)} onClose={() => setPromoId(null)} showToast={showToast} />}
           {eventCreate && <EventCreateSheet myLabel={displayName({ fac: facShort(me.faculty), grade: me.grade, anon: true })} onClose={() => setEventCreate(false)} onSubmit={createEvent} />}
           {daikoOpen && <DaikoSheet onClose={() => setDaikoOpen(false)} onSubmit={submitDaiko} onPublish={publishDaiko} />}
-          {userCard && <AnswererCard user={userCard} stats={userCard.mine ? myStats : (userCard.stats || null)} onClose={() => setUserCard(null)} />}
+          {userCard && <AnswererCard user={userCard} stats={userCard.mine ? myStats : (userCard.stats || null)} onClose={() => setUserCard(null)} onOpenPost={(id) => { setUserCard(null); openPost(id); }} />}
           {menuOpen && (
-            <MenuPage firstDay={EMPTY_DEMO} me={me} termMode={termMode} setTermMode={setTermMode} notif={notif} setNotif={setNotif}
+            <MenuPage firstDay={EMPTY_DEMO} me={me} termMode={termMode} setTermMode={setTermMode} notif={notif} setNotif={setNotif} rankShowMine={rankShowMine} setRankShowMine={setRankShowMine}
               onClose={() => setMenuOpen(false)} onEditProfile={() => setProfileOpen(true)}
               onLogout={() => { setMenuOpen(false); setStage("gate"); setTab("home"); }} />
           )}
           {profileOpen && (
             <Sheet onClose={() => setProfileOpen(false)} z={60}>
-              <SheetHeader title="学部・学年・匿名の設定" icon="badge" onClose={() => setProfileOpen(false)} />
+              <SheetHeader title="学部・学年の設定" icon="badge" onClose={() => setProfileOpen(false)} />
               <div className="px-5 pb-6 pt-1 overflow-y-auto">
                 <ProfileForm initial={me} showPeta saveLabel="保存する" onSave={(v) => { setMe(v); setProfileOpen(false); showToast("保存しました"); }} />
               </div>
