@@ -626,6 +626,7 @@
       // ベストアンサー（就活の質問）
       list[4].bestAnswerId = list[4].comments[0].id;
       list.push(...makeOdai(now));
+      list.push(...makeTsushinThemes(now, false));
       return list.map(p => ({ joiners: [], hidden: false, closed: false, ...p }));
     }
 
@@ -680,7 +681,8 @@
         q(903, "履修・楽単", "後期の履修、何を基準に選びましたか？", "新入生がよく聞く質問です。"),
         q(904, "暮らし・通学", `${U.winter}、どんな装備で行っていますか？`, "新入生がよく聞く質問です。"),
         q(905, "生活ハック", "1年のうちにやっておくといいことは？", "新入生がよく聞く質問です。"),
-        ...makeOdai(now).filter(p => p.odai.current).map(p => ({ ...p, comments: [], views: 0, watchers: 0 }))
+        ...makeOdai(now).filter(p => p.odai.current).map(p => ({ ...p, comments: [], views: 0, watchers: 0 })),
+        ...makeTsushinThemes(now, true)
       ];
       return list.map(p => ({ joiners: [], hidden: false, closed: false, ...p }));
     }
@@ -1151,6 +1153,7 @@
         <article onClick={onOpen} className={cx("relative overflow-hidden bg-surface rounded-3xl p-4 shadow-soft border cursor-pointer press animate-fade-up space-y-2", unread ? "border-brand/60 ring-2 ring-brand/15" : mine ? "border-brand/50" : "border-line/70")} style={delay != null ? { animationDelay: `${delay}ms` } : undefined}>
           <div className="flex items-center gap-1.5 flex-wrap">
             <CategoryChip cat={post.category} />
+            {post.tsushin && <span className="text-[11px] font-black text-brand-deep bg-brand-tint rounded-full px-1.5 py-0.5 flex items-center gap-0.5"><Icon n="newspaper" fill size={12} />{post.theme ? "通信の運営テーマ" : "つながり通信より"}</span>}
             {mine ? <MineBadge /> : <span className="text-[12px] text-mute">{displayName(post.author)}</span>}
             <span className="text-[12px] text-mute">・{agoLabel(post.at)}</span>
             {unread && <span className="ml-auto bg-brand text-on-brand text-[11px] font-black px-2 py-0.5 rounded-full">新着</span>}
@@ -2301,6 +2304,13 @@
         "マイページ：自分だけが見られる記録。質問・回答（ペタり場のペタも回答として入る）・気になる・イベント（アプリ内の主催・参加したい、大学のイベントへの参加状況＝運営が手で更新）",
         "イベントの主催者：日時ありは主催団体名を毎回入力（必須）。いつでもの募集は「匿名・学年」か団体名",
         "言葉：聞く側は「質問」のまま、答える側は「ペタ」に統一（回答→ペタ、回答する→ペタる、回答N件→ペタN枚、AIの回答まとめ→AIのペタまとめ）。初めてペタるときだけ「『ペタ』は回答のこと」と案内。付せんの色帯はやめ、ペタのカードは白地＋枠線で読みやすく"
+      ] },
+      { title: "つながり通信の答える導線（11/12）", items: [
+        "関連する質問の「〇〇の質問を見る」（検索結果へ移動）を削除。記事に戻るまでが長く離脱につながるため。関連する質問はシートで開き、閉じると記事の同じ位置に戻る",
+        "運営テーマ：号をAIで読み込み、総評として上級生に聞きたいことを1つ「運営テーマ」として発行。記事の「ペタで答える」でその質問をシートで開く。ホームにも運営の質問（「通信の運営テーマ」ラベル付き）として載る。知恵ではなくペタで答えてもらう",
+        "先輩の答え待ち「ペタで答える」：似た質問があればその質問をシートで開く。なければ答え待ちシート（上級生はその場でペタ／だれでも「この内容で質問してみよう！」）",
+        "答え待ちにその場でペタした場合：質問者＝運営、本文に記事の声を引用した「つながり通信より」の質問としてホームに作り、そのペタを最初の答えにする。以降は同じ吹き出しからこの質問が開く",
+        "ホームの通信の表紙カードの下に「これまでのつながり通信」（号の一覧へ）"
       ] },
       { title: "下部ナビの見直し（11/11）", items: [
         "下部ナビ：ホーム（質問・回答・つながり通信）／知恵（知恵の一覧）／投稿（質問する・イベント・仲間募集・知恵を残す。既存のまま）／イベント（イベント・仲間募集の一覧）／マイページ",
@@ -3484,7 +3494,7 @@
             { who: "1年", wakaru: 14, text: "最初は、いつから授業が始まるのかも分かりませんでした。仮で受けてみて次の週から確定する、という仕組みが分からなくて。友達に聞いて「とりあえず授業に行けばいいのかな」と。" },
             { who: "2年", naruhodo: 9, text: "前期は履修相談会があるから、まだ聞きやすいんです。気をつけたいのは後期。夏休みが明けると急に履修が始まるので、後期の方が情報を得にくかったです。" }
           ] },
-          { t: "related", q: "履修", label: "履修の質問を見る" },
+          { t: "related", q: "履修" },
           { t: "h3", text: `${U.lms}の使い方、誰も教えてくれない`, icon: "laptop_chromebook" },
           { t: "chat", items: [
             { who: "1年", wakaru: 11, text: "説明があまりなかったので、使いながら「小テストはここにあるんだ」「新しいお知らせはここに印がつくんだ」と覚えました。初めのころは友達に「これどういうこと？」と聞いていました。" },
@@ -3494,14 +3504,14 @@
           { t: "chat", items: [
             { who: "1年", wakaru: 8, text: "先生へのメールは、文章をAIに直してもらって「様」の付け方などを覚えました。参考文献の書き方は、基礎ゼミでレポートの書き方を習った友達が、本に書き方が載っているよと教えてくれました。" }
           ] },
-          { t: "related", q: "レポート", label: "レポートの質問を見る" },
+          { t: "related", q: "レポート" },
           { t: "h3", text: "単位を落とすのが怖い", icon: "sentiment_worried" },
           { t: "chat", items: [
             { who: "1年", wakaru: 21, text: "全部の授業を落とすんじゃないかと怖かったんです。奨学金もかかっているので、恐る恐る「楽に取れる授業」を探していました。時間が合うか、取っている友達がいるかも気になります。" },
             { who: "2年", naruhodo: 12, text: "私はサークルに入ってから、先輩が「この授業おすすめだよ」と教えてくれるようになりました。人とのつながりができると、授業の情報も入ってきます。" }
           ] },
           { t: "quote", text: "人とのつながりができると、授業の情報も入ってくる。", who: "2年生" },
-          { t: "ask", text: "3・4年生のみなさん、「1年の前期、これを知っていれば楽だった」ということを教えてください。", label: "先輩の知恵を残す", kind: "share" },
+          { t: "ask", text: "3・4年生のみなさん、「1年の前期、これを知っていれば楽だった」ということを教えてください。", label: "ペタで答える", kind: "theme" },
           { t: "kicker", text: "ゼミ選び", toc: "ゼミ選び" },
           { t: "h2", text: "ゼミ選びを「ギャンブル」にしないために" },
           { t: "p", text: "見学をしていないゼミや、来年度から新しく開くゼミもあります。所属している先輩を知らなければ、雰囲気はまったく分かりません。" },
@@ -3509,18 +3519,19 @@
             { who: "学生", wakaru: 10, text: "見学をやっていないゼミもあって、入っている先輩も知らないので、全く情報がないまま選ぶことになります。" },
             { who: "先生", naruhodo: 7, text: "案内は一覧がバーッと出るだけなので、興味のあるものをゼロから探すしかない。所属している先輩とつながりがないと、雰囲気は分からないですよね。" }
           ] },
-          { t: "related", q: "ゼミ", label: "ゼミの質問にペタする" },
+          { t: "related", q: "ゼミ" },
           { t: "kicker", text: "2年生の関心ごと", toc: "ガクチカ" },
           { t: "h2", text: "ガクチカって、何を書くの？" },
           { t: "chat", items: [
-            { who: "2年", wakaru: 7, text: "同じ学年はまだ就活をしていないので、先輩に聞くしかありません。サークルの3年生に聞いたら、サークルを続けたことや、何かを一から作った経験もガクチカになるよ、と教えてくれました。サークル以外の人のことも知りたいです。" }
+            { who: "2年", wakaru: 7, text: "同じ学年はまだ就活をしていないので、先輩に聞くしかありません。サークルの3年生に聞いたら、サークルを続けたことや、何かを一から作った経験もガクチカになるよ、と教えてくれました。サークル以外の人のことも知りたいです。" },
+            { who: "先輩", wanted: true, ask: "サークル以外の経験で、ガクチカに書いたことはありますか？", cat: "就活・インターン", text: "サークル以外の経験を書いた先輩の答えを募集中です。" }
           ] },
-          { t: "related", q: "ガクチカ", label: "ガクチカの質問を見る" },
+          { t: "related", q: "ガクチカ" },
           { t: "kicker", text: "暮らし", toc: "冬の通学" },
           { t: "h2", text: `${U.winter}、歩いて通える？` },
           { t: "chat", items: [
             { who: "1年", wakaru: 16, text: "交通費を浮かせたいので、坂を歩いて通いたいんです。今は20分ちょっと。でも冬になったら歩けるのかな、と。同級生はまだ冬を経験していないので、誰も分からなくて。" },
-            { who: "先輩", wanted: true, q: "通学", text: "この吹き出しに入る、先輩の答えを募集中です。" }
+            { who: "先輩", wanted: true, ask: `${U.winter}、歩いて通える？`, cat: "暮らし・通学", text: "この吹き出しに入る、先輩の答えを募集中です。" }
           ] },
           { t: "kicker", text: "声を集めてわかったこと", toc: "まとめ" },
           { t: "h2", text: "信頼できるのは、身近な人と「助かった！」の数" },
@@ -3531,9 +3542,27 @@
             ["3・4年生のみなさんへ", "ゼミの雰囲気、ガクチカの考え方、冬の通学。あなたにとって当たり前のことが、後輩には「お金を払ってでも知りたい」情報かもしれません。"]
           ] }
         ],
-        next: { when: "12月予定", theme: `${U.winter}、どう乗り切る？` }
+        next: { when: "12月予定", theme: `${U.winter}、どう乗り切る？` },
+        // 運営テーマ：号をAIで読み込み、総評として「上級生に聞きたいこと」を1つ発行（本番は運営が確認して出す）
+        //   ・記事の「ペタで答える」から開き、ホームにも運営の質問として載る（知恵ではなく、ペタで答えてもらう）
+        theme: {
+          id: 9101, category: "生活ハック", title: "1年の前期、「これを知っていれば楽だった」ということは？",
+          content: `つながり通信 VOL.1「1年生の最初の半年、何に困った？」を読んで、運営から3・4年生に聞きたいテーマです。履修・${U.lms}・メールの書き方など、1年生がつまずいたことに、先輩の経験で答えてください。`,
+          answers: [
+            [2, 3, "時間割は必修を入れたら一度止めて、空きコマは友達や先輩に聞いてから埋めると失敗しにくい。", 9],
+            [3, 4, `${U.lms}の通知を大学メールに転送する設定だけ、最初にやっておけばよかった。課題の見落としがなくなる。`, 6]
+          ]
+        }
       }
     ];
+    // 運営テーマの質問（号ごとに1件。empty＝リリース初日の見た目ではペタ0件）
+    function makeTsushinThemes(now, empty) {
+      return TSUSHIN_ISSUES.filter(i => i.theme).map(i => ({
+        id: i.theme.id, category: i.theme.category, author: OFFICIAL, askTo: "senpai", tsushin: i.id, theme: true,
+        title: i.theme.title, content: i.theme.content, at: now - 3 * 60 * MIN, views: empty ? 0 : 120, watchers: empty ? 0 : 7, watched: false,
+        comments: empty ? [] : i.theme.answers.map(([f, g, t, th], n) => ans(usr(P(f), g, n % 2 === 0), t, 90 - n * 40, th))
+      }));
+    }
     // 表紙の色（号ごとに変えられる。濃い色の上に白文字、号数はレモン色）
     const TSUSHIN_COVER = {
       vol1: "radial-gradient(rgb(255 255 255 / .10) 1px, transparent 1px) 0 0 / 12px 12px, linear-gradient(140deg, rgb(18 92 78), rgb(24 116 112) 55%, rgb(38 84 140))"
@@ -3579,8 +3608,45 @@
     }
 
     // 📖 通信の画面（号の一覧／記事）
-    function TsushinPage({ issueId, setIssueId, readIds, posts, onBack, onOpenPost, onWatch, onSearch, onAsk, onShare, onOpenEvents }) {
+    // 💬 先輩の答え待ち：アプリに似た質問がないとき（上級生はその場でペタ／だれでも「この内容で質問」）
+    function TsushinWantedSheet({ w, me, onClose, onAnswer, onAsk }) {
+      const [text, setText] = useState("");
+      const senpai = me.grade !== 1;
+      return (
+        <Sheet onClose={onClose} z={55}>
+          <SheetHeader title="先輩の答え待ち" icon="forum" onClose={onClose} />
+          <div className="px-5 pb-6 pt-1 overflow-y-auto space-y-4">
+            {w.voice && (
+              <div className="flex gap-2 items-start">
+                <span className={cx("w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[10.5px] font-black", TSUSHIN_WHO[w.voiceWho] || TSUSHIN_WHO["1年"])}>{w.voiceWho}</span>
+                <p className="min-w-0 bg-sunk rounded-2xl rounded-tl-md px-3 py-2 text-[12.5px] leading-[1.75] text-ink/90">{w.voice}</p>
+              </div>
+            )}
+            <div className="rounded-2xl border border-line/70 p-3.5 space-y-1">
+              <p className="text-[11.5px] font-black text-sub">聞きたいこと</p>
+              <p className="font-head font-black text-[16px] leading-snug">{w.ask}</p>
+              <p className="text-[11.5px] text-mute flex items-center gap-1"><Icon n="search_off" size={14} />同じような質問は、まだアプリにありません</p>
+            </div>
+            {senpai && (
+              <div className="space-y-2">
+                <textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} placeholder="あなたの経験を教えてください" aria-label="ペタを書く" className={cx(INPUT, "resize-none leading-relaxed")} />
+                <p className="text-[11.5px] text-mute leading-relaxed">答えると、この内容が「つながり通信より」の質問としてホームに載り、あなたのペタが最初の答えになります（匿名・学年で表示）</p>
+                <button disabled={!text.trim()} onClick={() => onAnswer(text.trim())} className={cx(BTN_PRIMARY, "w-full flex items-center justify-center gap-1")}><Icon n="sticky_note_2" fill size={18} />ペタで答える</button>
+              </div>
+            )}
+            <div className="space-y-2">
+              {senpai && <p className="text-[11.5px] font-bold text-mute text-center">または</p>}
+              <p className="text-[12.5px] text-sub leading-relaxed">{senpai ? "すぐに答えられないときは、質問として出して、ほかの先輩の答えを待てます。" : "同じことが気になったら、質問してみよう。先輩がペタで答えてくれます。"}</p>
+              <button onClick={() => onAsk(w.ask, w.cat)} className={cx(senpai ? BTN_SOFT : BTN_PRIMARY, "w-full flex items-center justify-center gap-1")}><Icon n="edit" size={18} />この内容で質問してみよう！</button>
+            </div>
+          </div>
+        </Sheet>
+      );
+    }
+
+    function TsushinPage({ issueId, setIssueId, readIds, posts, me, entryId, onBack, onOpenPost, onWatch, onAsk, onAskText, onAnswerWanted, onShare, onOpenEvents }) {
       useScrollLock();
+      const [wanted, setWanted] = useState(null);   // 似た質問がないときの答え待ちシート
       const issue = TSUSHIN_ISSUES.find(i => i.id === issueId) || null;
       const scroller = useRef(null);
       const [pct, setPct] = useState(0);
@@ -3614,7 +3680,13 @@
                     <div className="min-w-0 flex-1 rounded-2xl rounded-tr-md border-2 border-dashed border-brand/60 bg-brand-tint/50 px-3.5 py-3 space-y-2">
                       <p className="flex items-center gap-1 text-[12.5px] font-black text-brand-deep"><span className="flex gap-0.5" aria-hidden="true">{[0, 1, 2].map(d => <span key={d} className="w-1.5 h-1.5 rounded-full bg-brand" style={{ animation: `dotBounce 1.2s ${d * .15}s infinite` }}></span>)}</span>先輩の答え待ち</p>
                       <p className="text-[13px] leading-relaxed text-ink/90">{m.text}</p>
-                      <button onClick={() => onSearch(m.q)} className="w-full bg-brand text-on-brand rounded-full py-2 text-[12.5px] font-black flex items-center justify-center gap-1 press"><Icon n="sticky_note_2" fill size={16} />ペタで答える</button>
+                      <button onClick={() => {
+                        // 似た質問があれば、その質問をボトムシートで開く（記事から離れない）。なければ答え待ちシート
+                        const sim = findSimilarQuestions(posts, m.ask, m.cat);
+                        const prev = b.items[j - 1] && !b.items[j - 1].wanted ? b.items[j - 1] : null;
+                        if (sim.length) onOpenPost(sim[0].id);
+                        else setWanted({ ask: m.ask, cat: m.cat, voice: prev && prev.text, voiceWho: prev && prev.who });
+                      }} className="w-full bg-brand text-on-brand rounded-full py-2 text-[12.5px] font-black flex items-center justify-center gap-1 press"><Icon n="sticky_note_2" fill size={16} />ペタで答える</button>
                     </div>
                   ) : (
                     <div className={cx("min-w-0 flex-1 flex flex-col gap-1", right ? "items-end" : "items-start")}>
@@ -3641,12 +3713,24 @@
           </figure>
         );
         if (b.t === "related") {
+          // 「〇〇の質問を見る」（検索結果へ移動）は削除：記事に戻るまでが長く、離脱につながるため。質問はシートで開く
           const rel = relatedOf(b.q);
+          if (rel.length === 0) return null;
           return (
             <div key={i} className="bg-sunk rounded-2xl p-2.5 space-y-2">
               <p className="text-[11.5px] font-black text-sub flex items-center gap-1 px-1"><Icon n="forum" size={15} />アプリの中の関連する質問</p>
               {rel.map(p => <QuestionRow key={p.id} post={p} onOpen={() => onOpenPost(p.id)} onWatch={onWatch} />)}
-              <button onClick={() => onSearch(b.q)} className="w-full text-[12.5px] font-black text-brand-deep flex items-center justify-center gap-0.5 py-1.5 press">{b.label}<Icon n="chevron_right" size={16} /></button>
+            </div>
+          );
+        }
+        if (b.t === "ask" && b.kind === "theme") {
+          // 運営テーマ：号ごとの「上級生に聞きたいこと」の質問をシートで開き、ペタで答えてもらう
+          const tp = issue.theme && posts.find(p => p.id === issue.theme.id);
+          return (
+            <div key={i} className="rounded-2xl border-2 border-dashed border-brand/60 bg-brand-tint/40 p-3.5 space-y-2.5">
+              <p className="text-[11.5px] font-black text-brand-deep flex items-center gap-1"><Icon n="campaign" fill size={15} />運営テーマ{tp && tp.comments.length > 0 && <span className="ml-auto text-sub font-bold">{tp.comments.length}ペタ</span>}</p>
+              <p className="text-[13px] leading-relaxed font-bold">{b.text}</p>
+              <button onClick={() => tp ? onOpenPost(tp.id) : onAsk()} className={cx(BTN_PRIMARY, "w-full py-2.5 text-[13.5px] flex items-center justify-center gap-1")}><Icon n="sticky_note_2" fill size={18} />{b.label}</button>
             </div>
           );
         }
@@ -3682,7 +3766,8 @@
         <div className="fixed inset-0 z-[25] bg-bg flex flex-col animate-push-in" role="region" aria-label="つながり通信">
           <div className="w-full max-w-md mx-auto flex-1 flex flex-col min-h-0">
             <header className="relative px-2 pb-2 flex items-center gap-1 border-b border-line/70 bg-bg" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
-              <button onClick={issue ? () => setIssueId(null) : onBack} aria-label={issue ? "号の一覧に戻る" : "ホームに戻る"} className="w-11 h-11 rounded-full flex items-center justify-center press"><Icon n="arrow_back_ios_new" size={22} /></button>
+              {/* 「<」：表紙カード・お知らせから記事を直接開いたときは元の画面（ホームなど）へ。一覧から開いた号は一覧へ */}
+              <button onClick={issue && issue.id !== entryId ? () => setIssueId(null) : onBack} aria-label={issue && issue.id !== entryId ? "号の一覧に戻る" : "戻る"} className="w-11 h-11 rounded-full flex items-center justify-center press"><Icon n="arrow_back_ios_new" size={22} /></button>
               <h2 className="font-head font-black text-[17px] flex-1">{issue ? `つながり通信 VOL.${issue.vol}` : "つながり通信"}</h2>
               {issue && <span className="text-[11.5px] font-bold text-mute pr-3 tabular-nums">約{tsushinMinutes(issue)}分</span>}
               {issue && <span aria-hidden="true" className="absolute left-0 bottom-0 h-[3px] bg-brand transition-[width] duration-150" style={{ width: `${pct * 100}%` }}></span>}
@@ -3765,6 +3850,11 @@
               )}
             </div>
           </div>
+          {wanted && issue && (
+            <TsushinWantedSheet w={wanted} me={me} onClose={() => setWanted(null)}
+              onAnswer={(text) => { onAnswerWanted(issue, wanted, text); setWanted(null); }}
+              onAsk={(t, c) => { setWanted(null); onAskText(t, c); }} />
+          )}
         </div>
       );
     }
@@ -3813,6 +3903,7 @@
       const [rankOpen, setRankOpen] = useState(false);
       const [tsushinOpen, setTsushinOpen] = useState(false);     // v4：つながり通信（別画面）
       const [tsushinIssue, setTsushinIssue] = useState(null);    // null＝号の一覧
+      const [tsushinEntry, setTsushinEntry] = useState(null);    // 記事から直接開いた号（ホームの表紙カード・お知らせ）。その号の「<」は元の画面へ戻る
       const [tsushinRead, setTsushinRead] = useState([]);  // 本番は利用者ごとに保存          // v3：助かった！ランキング（別画面）   // これまでのお題（別画面）
       const [eventId, setEventId] = useState(null);
       const [promoId, setPromoId] = useState(null);
@@ -3851,7 +3942,7 @@
       const overlayOpen = odaiListOpen || rankOpen || tsushinOpen;
       const closeOverlays = () => { setOdaiListOpen(false); setRankOpen(false); setTsushinOpen(false); };
       // v4：つながり通信を開く（号を指定すると記事から、なければ一覧から）
-      const openTsushin = (id = null) => { setTsushinIssue(id); setTsushinOpen(true); if (id) setTsushinRead(prev => prev.includes(id) ? prev : [...prev, id]); };
+      const openTsushin = (id = null) => { setTsushinIssue(id); setTsushinEntry(id); setTsushinOpen(true); if (id) setTsushinRead(prev => prev.includes(id) ? prev : [...prev, id]); };
       const goHome = () => {
         if (overlayOpen) { closeOverlays(); if (tab === "home") return; }
         if (tab !== "home") { setTab("home"); return; }
@@ -3911,6 +4002,21 @@
         later(() => {
           setPosts(prev => prev.map(x => x.id !== postId ? x : { ...x, comments: x.comments.map(k => k.id !== c.id ? k : { ...k, thanks: (k.thanks || 0) + 1 }) }));
           pushNotice({ kind: odai ? "react" : "thanks", postId, title: shortTitle(p.title), preview: text });
+        }, DEMO_THANKS_MS);
+      };
+      // ---- つながり通信：答え待ちに、似た質問がないままペタした ----
+      //   → 「つながり通信より」の運営の質問としてホームに作り、そのペタを最初の答えにする（質問者＝運営、記事の声を本文に引用）
+      const answerTsushinWanted = (issue, w, text) => {
+        setPetaDone(true);
+        const id = Date.now();
+        const c = { id: id + 1, user: myUser(true), text, at: Date.now(), thanks: 0, liked: false };
+        const content = `つながり通信 VOL.${issue.vol}「${issue.title}」で出た声です。${w.voice ? ` ${w.voiceWho}：「${w.voice}」` : ""}`;
+        setPosts(prev => [{ id, category: w.cat || "その他", askTo: "senpai", title: w.ask, content, author: OFFICIAL, tsushin: issue.id, at: Date.now(), views: 0, watchers: 0, watched: false, comments: [c], joiners: [], hidden: false, closed: false }, ...prev]);
+        setSelectedPostId(id);
+        showToast("ペタありがとう！ホームにも質問として載りました");
+        later(() => {
+          setPosts(prev => prev.map(x => x.id !== id ? x : { ...x, comments: x.comments.map(k => k.id !== c.id ? k : { ...k, thanks: (k.thanks || 0) + 1 }) }));
+          pushNotice({ kind: "thanks", postId: id, title: shortTitle(w.ask), preview: text });
         }, DEMO_THANKS_MS);
       };
       // ---- イベント・つながる ----
@@ -4151,6 +4257,7 @@
                     </button>
                     {/* v4：つながり通信の表紙カード（ホーム上部） */}
                     <TsushinHomeCard issue={TSUSHIN_ISSUES[0]} unread={!tsushinRead.includes(TSUSHIN_ISSUES[0].id)} onOpen={() => openTsushin(TSUSHIN_ISSUES[0].id)} />
+                    <button onClick={() => openTsushin(null)} className="-mt-1 text-[12px] font-bold text-brand-deep flex items-center press px-1">これまでのつながり通信<Icon n="chevron_right" size={16} /></button>
                   </div>
                 )}
                 <div className="space-y-2.5">
@@ -4332,10 +4439,9 @@
           {shareOpen && <ShareKakomonSheet courseDict={courseDict} onClose={() => setShareOpen(false)} onSubmit={shareKakomon} />}
           {rankOpen && <RankingPage posts={visiblePosts} onBack={() => setRankOpen(false)} onOpenPost={openPost} onOpenUser={setUserCard} />}
           {tsushinOpen && (
-            <TsushinPage issueId={tsushinIssue} setIssueId={(id) => { setTsushinIssue(id); if (id) setTsushinRead(prev => prev.includes(id) ? prev : [...prev, id]); }} readIds={tsushinRead} posts={visiblePosts}
+            <TsushinPage issueId={tsushinIssue} setIssueId={(id) => { setTsushinIssue(id); if (id) setTsushinRead(prev => prev.includes(id) ? prev : [...prev, id]); }} readIds={tsushinRead} posts={visiblePosts} me={me} entryId={tsushinEntry}
               onBack={() => setTsushinOpen(false)} onOpenPost={openPost} onWatch={toggleWatch}
-              onSearch={(q) => { closeOverlays(); setTab("home"); setCatFilter(""); setQuery(q); }}
-              onAsk={() => setAsk({})} onShare={() => setShareOpen(true)}
+              onAsk={() => setAsk({})} onAskText={(text, cat) => setAsk({ text, cat })} onAnswerWanted={answerTsushinWanted} onShare={() => setShareOpen(true)}
               onOpenEvents={() => { closeOverlays(); setTab("events"); setEventId("tate1"); }} />
           )}
           {odaiListOpen && <OdaiListPage posts={visiblePosts} term={term} me={me} onBack={() => setOdaiListOpen(false)} onOpen={openPost} />}
