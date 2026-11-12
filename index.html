@@ -268,6 +268,9 @@
     :root { --ts-mark: 255 221 102; }
     @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ts-mark: 110 88 14; } }
     :root[data-theme="dark"] { --ts-mark: 110 88 14; }
+    /* iOS Safari：日付・時刻の入力欄が中身の幅より縮まず、グリッドからはみ出すのを防ぐ（11/12） */
+    input[type="date"], input[type="time"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; min-width: 0; max-width: 100%; min-height: 3rem; text-align: left; }
+    input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
   </style>
 </head>
 <body class="bg-bg text-ink min-h-screen overflow-x-hidden">
@@ -2319,6 +2322,11 @@
         "イベントの主催者：日時ありは主催団体名を毎回入力（必須）。いつでもの募集は「匿名・学年」か団体名",
         "言葉：聞く側は「質問」のまま、答える側は「ペタ」に統一（回答→ペタ、回答する→ペタる、回答N件→ペタN枚、AIの回答まとめ→AIのペタまとめ）。初めてペタるときだけ「『ペタ』は回答のこと」と案内。付せんの色帯はやめ、ペタのカードは白地＋枠線で読みやすく"
       ] },
+      { title: "イベントのカレンダー表示（11/12）", items: [
+        "イベントタブの「日時が決まっている集まり」の右で「リスト／カレンダー」を切り替え（「すべて／日時あり／いつでも」の切り替えは削除）。カレンダーは日時が決まっている集まりだけを月の表に点で表示し、日付を押すとその日の集まりを下に出す",
+        "最初は、今日に集まりがあれば今日、なければいちばん近い開催日を選んだ状態で開く。キーワード・タグの絞り込みはカレンダーにも効く",
+        "日時を決めていない仲間募集はカレンダーに載らないため、件数と「リストで見る」の入口を下に出す"
+      ] },
       { title: "ランキングから「助かった！が多いペタ」を見る（11/12）", items: [
         "小樽商大とのWSで「助かったが多い人は信頼できる」との声。ランキングで人を押すと、その人の「助かった！」が多いペタ上位3件と、得意な話題（助かった！の多いカテゴリ2つまで）を出す",
         "すべての回答の一覧は出さない：同じ人の回答が並ぶと、内容の組み合わせと学年・学部の表示から本人が分かりやすくなるため。対象は「助かった！」が付いたペタだけ",
@@ -2708,8 +2716,80 @@
     }
 
     // 📅 イベントタブ（下部ナビ「イベント」。旧：ホームから開く別画面「仲間・イベント」）
-    function EventsTab({ events, promos, me, onOpenEvent, onOpenPromo, onDaiko }) {
-      const [kind, setKind] = useState("all");   // all | scheduled | anytime
+    // 🗓 カレンダー表示（日時が決まっている集まりだけ。日付を押すと、その日の集まりを下に出す）
+    const ymdKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${x.getMonth() + 1}-${x.getDate()}`; };
+    function EventCalendar({ items, anytimeCount, onOpenEvent, onShowAnytime }) {
+      const today = new Date();
+      const byDay = useMemo(() => {
+        const m = {};
+        items.forEach(e => { const k = ymdKey(e.start); (m[k] = m[k] || []).push(e); });
+        Object.values(m).forEach(list => list.sort((a, b) => a.start - b.start));
+        return m;
+      }, [items]);
+      // 最初に開く日：今日に集まりがあれば今日、なければ今日以降でいちばん近い日
+      const firstDay = () => {
+        if (byDay[ymdKey(today)]) return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const next = items.filter(e => e.start >= new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()).sort((a, b) => a.start - b.start)[0];
+        return next ? new Date(new Date(next.start).setHours(0, 0, 0, 0)) : new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      };
+      const [sel, setSel] = useState(firstDay);
+      const [month, setMonth] = useState(() => new Date(sel.getFullYear(), sel.getMonth(), 1));
+      const y = month.getFullYear(), mo = month.getMonth();
+      const lead = new Date(y, mo, 1).getDay();
+      const days = new Date(y, mo + 1, 0).getDate();
+      const cells = [...Array(lead).fill(null), ...Array.from({ length: days }, (_, i) => new Date(y, mo, i + 1))];
+      while (cells.length % 7) cells.push(null);
+      const monthCount = items.filter(e => { const d = new Date(e.start); return d.getFullYear() === y && d.getMonth() === mo; }).length;
+      const selList = byDay[ymdKey(sel)] || [];
+      const move = (n) => setMonth(new Date(y, mo + n, 1));
+      return (
+        <div className="space-y-3">
+          <div className="bg-surface rounded-3xl border border-line/70 shadow-soft p-3">
+            <div className="flex items-center justify-between px-1 pb-2">
+              <button onClick={() => move(-1)} aria-label="前の月" className="w-9 h-9 rounded-full flex items-center justify-center press text-sub"><Icon n="chevron_left" size={22} /></button>
+              <p className="font-head font-black text-[15px] tabular-nums">{y}年{mo + 1}月<span className="ml-1.5 text-[11.5px] font-bold text-mute">{monthCount}件</span></p>
+              <button onClick={() => move(1)} aria-label="次の月" className="w-9 h-9 rounded-full flex items-center justify-center press text-sub"><Icon n="chevron_right" size={22} /></button>
+            </div>
+            <div className="grid grid-cols-7 text-center text-[11px] font-bold pb-1" aria-hidden="true">
+              {"日月火水木金土".split("").map((w, i) => <span key={w} className={i === 0 ? "text-love-ink" : i === 6 ? "text-ask" : "text-mute"}>{w}</span>)}
+            </div>
+            <div className="grid grid-cols-7 gap-y-1" role="grid" aria-label={`${y}年${mo + 1}月`}>
+              {cells.map((d, i) => {
+                if (!d) return <span key={i}></span>;
+                const list = byDay[ymdKey(d)] || [];
+                const isSel = ymdKey(d) === ymdKey(sel);
+                const isToday = ymdKey(d) === ymdKey(today);
+                const past = d < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                return (
+                  <button key={i} onClick={() => setSel(d)} aria-pressed={isSel} aria-label={`${mo + 1}月${d.getDate()}日${list.length ? `、集まり${list.length}件` : ""}`}
+                    className={cx("h-11 mx-0.5 rounded-xl flex flex-col items-center justify-center gap-0.5 press", isSel ? "bg-brand text-on-brand" : isToday ? "ring-2 ring-brand/50" : "", !isSel && past && "opacity-45")}>
+                    <span className={cx("text-[13px] leading-none tabular-nums", list.length ? "font-black" : "font-bold", !isSel && (d.getDay() === 0 ? "text-love-ink" : d.getDay() === 6 ? "text-ask" : ""))}>{d.getDate()}</span>
+                    <span className="flex gap-0.5 h-1.5">
+                      {list.slice(0, 3).map(e => <span key={e.id} className={cx("w-1.5 h-1.5 rounded-full", isSel ? "bg-white" : e.mine ? "bg-love" : "bg-brand")}></span>)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <section className="space-y-2.5">
+            <p className="text-[13.5px] font-black px-1 flex items-center gap-1"><Icon n="today" fill size={17} className="text-brand-deep" />{dayLabel(sel)}の集まり</p>
+            {selList.map(e => <EventCard key={e.id} ev={e} wide onOpen={() => onOpenEvent(e.id)} />)}
+            {selList.length === 0 && <p className="text-[13px] text-mute text-center py-4">この日の集まりはありません</p>}
+          </section>
+          {anytimeCount > 0 && (
+            <button onClick={onShowAnytime} className="w-full text-left bg-sunk rounded-2xl px-3.5 py-3 flex items-center gap-2 press">
+              <Icon n="diversity_3" fill size={18} className="text-brand-deep flex-shrink-0" />
+              <span className="flex-1 min-w-0 text-[12.5px] font-bold">日時を決めていない仲間募集 {anytimeCount}件は、リストで見られます</span>
+              <Icon n="chevron_right" size={18} className="text-mute" />
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    function EventsTab({ events, promos, me, view = "list", setView = () => {}, onOpenEvent, onOpenPromo, onDaiko }) {
+      // 「すべて／日時あり／いつでも」の切り替えは削除（11/12）。日時あり→いつでもの順に両方を並べる
       const [tag, setTag] = useState("");
       const [q, setQ] = useState("");
       const base = events
@@ -2733,7 +2813,6 @@
                 </ScrollRow>
               </section>
               {onDaiko && <DaikoBanner onOpen={onDaiko} />}
-              <Segmented value={kind} onChange={setKind} options={[{ value: "all", label: "すべて" }, { value: "scheduled", label: "日時あり", icon: "event" }, { value: "anytime", label: "いつでも", icon: "diversity_3" }]} />
               <div className="relative">
                 <Icon n="search" size={20} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-mute" />
                 <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="キーワードで探す" aria-label="仲間・イベントを探す" className={cx(INPUT, "pl-11 rounded-full")} />
@@ -2743,15 +2822,31 @@
                 {EVENT_TAGS.map(t => <button key={t} onClick={() => setTag(tag === t ? "" : t)} aria-pressed={tag === t} className={CHIP(tag === t)}>{t}</button>)}
               </ScrollRow>
               {filtered && <button onClick={clear} className="text-[12px] font-bold text-brand-deep flex items-center gap-0.5 press -mt-2"><Icon n="close" size={15} />絞り込みを解除</button>}
-              {kind !== "anytime" && (
+              {/* 「日時が決まっている集まり」の右に、表示の切り替え（リスト／カレンダー） */}
+              {/* 見出しと同じ行に収まるよう、切り替えはアイコンだけ（スマホ幅で見出しが折り返さない） */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0 flex-1 [&_h2]:whitespace-nowrap"><SectionHead title="日時が決まっている集まり" icon="event" /></div>
+                <div className="flex gap-0.5 bg-sunk rounded-full p-0.5 flex-shrink-0" role="tablist" aria-label="表示の切り替え">
+                  {[["list", "view_agenda", "リスト"], ["calendar", "calendar_month", "カレンダー"]].map(([v, ic, l]) => (
+                    <button key={v} role="tab" aria-selected={view === v} aria-label={`${l}で表示`} title={l} onClick={() => setView(v)}
+                      className={cx("w-9 h-8 rounded-full flex items-center justify-center press", view === v ? "bg-surface text-brand-deep shadow-soft" : "text-sub")}>
+                      <Icon n={ic} fill={view === v} size={19} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {view === "calendar" && (
+                <EventCalendar items={base.filter(e => e.scheduled)} anytimeCount={base.filter(e => !e.scheduled).length}
+                  onOpenEvent={onOpenEvent} onShowAnytime={() => { setView("list"); setTimeout(() => { const el = document.getElementById("ev-anytime"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); }} />
+              )}
+              {view === "list" && (
                 <section className="space-y-2.5">
-                  <SectionHead title="日時が決まっている集まり" icon="event" />
                   {scheduled.map(e => <EventCard key={e.id} ev={e} wide onOpen={() => onOpenEvent(e.id)} />)}
                   {scheduled.length === 0 && <p className="text-[13px] text-mute text-center py-4">該当する集まりはありません</p>}
                 </section>
               )}
-              {kind !== "scheduled" && (
-                <section className="space-y-2.5">
+              {view === "list" && (
+                <section id="ev-anytime" className="space-y-2.5 scroll-mt-20">
                   <SectionHead title="いつでも・ゆるい仲間募集" icon="diversity_3" />
                   {anytime.map(e => <EventCard key={e.id} ev={e} wide onOpen={() => onOpenEvent(e.id)} />)}
                   {anytime.length === 0 && <p className="text-[13px] text-mute text-center py-4">該当する募集はありません</p>}
@@ -2977,8 +3072,8 @@
               <div><label className={LABEL} htmlFor="dk-desc">内容（箇条書きでOK。AIが読みやすく整えます）</label><textarea id="dk-desc" rows={4} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder={"例：\n・新入生歓迎のBBQ。部員20人くらい\n・食材はこちらで用意、参加費500円\n・雨天時は部室で鍋"} className={cx(INPUT, "resize-none")} /></div>
               <div className="grid grid-cols-3 gap-2">
                 <div className="col-span-3"><label className={LABEL} htmlFor="dk-date">開催日</label><input id="dk-date" type="date" min={minDate} value={date} onChange={(e) => setDate(e.target.value)} className={INPUT} /></div>
-                <div><label className={LABEL} htmlFor="dk-from">開始</label><input id="dk-from" type="time" value={from} onChange={(e) => setFrom(e.target.value)} className={INPUT} /></div>
-                <div><label className={LABEL} htmlFor="dk-to">終了</label><input id="dk-to" type="time" value={to} onChange={(e) => setTo(e.target.value)} className={INPUT} /></div>
+                <div className="min-w-0"><label className={LABEL} htmlFor="dk-from">開始</label><input id="dk-from" type="time" value={from} onChange={(e) => setFrom(e.target.value)} className={INPUT} /></div>
+                <div className="min-w-0"><label className={LABEL} htmlFor="dk-to">終了</label><input id="dk-to" type="time" value={to} onChange={(e) => setTo(e.target.value)} className={INPUT} /></div>
                 <div><label className={LABEL} htmlFor="dk-cap">定員（人）</label><input id="dk-cap" inputMode="numeric" value={cap} onChange={(e) => setCap(e.target.value.replace(/\D/g, ""))} placeholder="なし" className={INPUT} /></div>
               </div>
               {tooSoon && <p className="text-[12px] font-bold text-danger-ink">受付は開催の{DAIKO_LEAD_DAYS}日前までです。{minDate.replace(/-/g, "/")}以降の日付にしてください</p>}
@@ -3106,13 +3201,11 @@
               {scheduled && (
                 <div className="space-y-3 animate-fade-in">
                   <div className="flex gap-2">{["オフライン", "オンライン"].map(t => <button key={t} onClick={() => toggle(type, setType, t)} aria-pressed={type.includes(t)} className={CHIP(type.includes(t))}><Icon n={type.includes(t) ? "check_box" : "check_box_outline_blank"} size={16} />{t}</button>)}</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-2"><label className={LABEL} htmlFor="ev-date">開催日</label><input id="ev-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className={cx(INPUT, "bg-surface")} /></div>
-                    <div><label className={LABEL} htmlFor="ev-cap">定員（人）</label><input id="ev-cap" inputMode="numeric" value={cap} onChange={(e) => setCap(e.target.value.replace(/\D/g, ""))} placeholder="なし" className={cx(INPUT, "bg-surface")} /></div>
-                    <div className="col-span-3 grid grid-cols-2 gap-2">
-                      <div><label className={LABEL} htmlFor="ev-from">開始</label><input id="ev-from" type="time" value={from} onChange={(e) => setFrom(e.target.value)} className={cx(INPUT, "bg-surface")} /></div>
-                      <div><label className={LABEL} htmlFor="ev-to">終了</label><input id="ev-to" type="time" value={to} onChange={(e) => setTo(e.target.value)} className={cx(INPUT, "bg-surface")} /></div>
-                    </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="min-w-0"><label className={LABEL} htmlFor="ev-date">開催日</label><input id="ev-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className={cx(INPUT, "bg-surface")} /></div>
+                    <div className="min-w-0"><label className={LABEL} htmlFor="ev-cap">定員（人）</label><input id="ev-cap" inputMode="numeric" value={cap} onChange={(e) => setCap(e.target.value.replace(/\D/g, ""))} placeholder="なし" className={cx(INPUT, "bg-surface")} /></div>
+                    <div className="min-w-0"><label className={LABEL} htmlFor="ev-from">開始</label><input id="ev-from" type="time" value={from} onChange={(e) => setFrom(e.target.value)} className={cx(INPUT, "bg-surface")} /></div>
+                    <div className="min-w-0"><label className={LABEL} htmlFor="ev-to">終了</label><input id="ev-to" type="time" value={to} onChange={(e) => setTo(e.target.value)} className={cx(INPUT, "bg-surface")} /></div>
                   </div>
                 </div>
               )}
@@ -3962,6 +4055,7 @@
       const [tsushinEntry, setTsushinEntry] = useState(null);    // 記事から直接開いた号（ホームの表紙カード・お知らせ）。その号の「<」は元の画面へ戻る
       const [tsushinRead, setTsushinRead] = useState([]);  // 本番は利用者ごとに保存          // v3：助かった！ランキング（別画面）   // これまでのお題（別画面）
       const [eventId, setEventId] = useState(null);
+      const [eventView, setEventView] = useState("list");   // イベントタブの表示：list | calendar（タブを行き来しても保つ）
       const [promoId, setPromoId] = useState(null);
       const [eventCreate, setEventCreate] = useState(false);
       const [daikoOpen, setDaikoOpen] = useState(false);   // イベント掲載代行（11/11）
@@ -4420,7 +4514,7 @@
             )}
 
             {tab === "events" && (
-              <EventsTab events={events} promos={promos} me={me}
+              <EventsTab events={events} promos={promos} me={me} view={eventView} setView={setEventView}
                 onOpenEvent={setEventId} onOpenPromo={setPromoId} onDaiko={() => setDaikoOpen(true)} />
             )}
 
